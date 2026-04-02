@@ -298,6 +298,21 @@ export default function InvoiceCard({
             </Typography>
           </Box>
 
+          {/* Allocated / Remaining breakdown — shown when partially allocated */}
+          {allocated > 0 && remaining > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+              <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
+                {fmtFull(allocated)} allocated
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                ·
+              </Typography>
+              <Typography variant="caption" color="warning.main" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
+                {fmtFull(remaining)} remaining
+              </Typography>
+            </Box>
+          )}
+
           {/* Click-to-allocate (non-drag alternative) */}
           {!hasSubItems && remaining > 0 && (
             <Button

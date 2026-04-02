@@ -72,14 +72,14 @@ export default function InvoicePanel() {
       {/* Scrollable Invoice List */}
       <Box
         sx={{
-          flex: pdfOpen ? '0 0 auto' : 1,
-          maxHeight: pdfOpen ? '35%' : undefined,
-          overflow: 'auto',
+          flex: pdfOpen ? '0 0 35%' : 1,
+          minHeight: 0,
+          overflowY: 'auto',
+          overflowX: 'hidden',
           px: 1.5,
           py: 1.5,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1.5,
+          '& > *': { mb: 1.5 },
+          '& > *:last-child': { mb: 0 },
         }}
       >
         {/* Pending invoices */}
