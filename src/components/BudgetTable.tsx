@@ -277,7 +277,7 @@ export default function BudgetTable() {
   return (
     <Box
       sx={{
-        flex: '1 1 62%',
+        flex: '1 1 55%',
         display: 'flex',
         flexDirection: 'column',
         borderRight: '1px solid',

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, CssBaseline, ThemeProvider } from '@mui/material';
+import { Box, CssBaseline, ThemeProvider, useMediaQuery, useTheme } from '@mui/material';
 import {
   DndContext,
   DragOverlay,
@@ -12,13 +12,15 @@ import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import theme from './theme';
 import { AllocationProvider, useAllocation } from './AllocationContext';
 import StepNav from './components/StepNav';
+import StepFooter from './components/StepFooter';
 import BudgetTable from './components/BudgetTable';
 import InvoicePanel from './components/InvoicePanel';
 import DragOverlayCard from './components/DragOverlayCard';
 import { getSubItemAllocatedAmount, getInvoiceAllocatedAmount } from './types';
 import type { DragData } from './types';
 
-function AllocationWorkspace() {
+// Desktop layout with drag-and-drop
+function DesktopLayout() {
   const { categories, invoices, addAllocation } = useAllocation();
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
 
@@ -30,9 +32,7 @@ function AllocationWorkspace() {
 
   const handleDragStart = (event: DragStartEvent) => {
     const data = event.active.data.current as DragData | undefined;
-    if (data) {
-      setActiveDrag(data);
-    }
+    if (data) setActiveDrag(data);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -44,12 +44,10 @@ function AllocationWorkspace() {
     const dragData = active.data.current as DragData | undefined;
     if (!dragData) return;
 
-    // Extract lineItemId from droppable id (format: "drop-{lineItemId}")
     const droppableId = over.id as string;
     if (!droppableId.startsWith('drop-')) return;
     const lineItemId = droppableId.replace('drop-', '');
 
-    // Calculate remaining amount for this drag item
     let amount: number;
     if (dragData.type === 'sub-item' && dragData.subItemId) {
       const allocated = getSubItemAllocatedAmount(dragData.subItemId, categories);
@@ -91,6 +89,28 @@ function AllocationWorkspace() {
       </DragOverlay>
     </DndContext>
   );
+}
+
+// Mobile layout — no drag, no budget table
+function MobileLayout() {
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* Main content: full-width invoice panel */}
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <InvoicePanel isMobile />
+      </Box>
+
+      {/* Step footer */}
+      <StepFooter />
+    </Box>
+  );
+}
+
+function AllocationWorkspace() {
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'), { noSsr: true });
+
+  return isMobile ? <MobileLayout /> : <DesktopLayout />;
 }
 
 export default function App() {
