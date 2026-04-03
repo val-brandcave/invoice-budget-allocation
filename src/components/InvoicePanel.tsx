@@ -119,10 +119,8 @@ function PdfContent({
 // Editable AI summary
 function EditableSummary({
   invoice,
-  isMobile,
 }: {
   invoice: Invoice;
-  isMobile: boolean;
 }) {
   const { updateInvoiceSummary } = useAllocation();
   const [editing, setEditing] = useState(false);
@@ -266,7 +264,7 @@ function DraggableInvoiceCard({
           </Box>
 
           {/* AI Summary — editable on click */}
-          <EditableSummary invoice={invoice} isMobile={isMobile} />
+          <EditableSummary invoice={invoice} />
 
           {/* Progress bar */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
@@ -453,7 +451,7 @@ export default function InvoicePanel({ isMobile = false }: { isMobile?: boolean 
             },
           }}
         >
-          {invoices.map((inv, idx) => {
+          {invoices.map((inv) => {
             const status = getInvoiceStatus(inv, categories);
             const isAllocated = status === 'fully_allocated';
             return (

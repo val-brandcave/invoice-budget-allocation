@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import type { BudgetCategory, Invoice, Allocation } from './types';
-import { getInvoiceAllocatedAmount, getSubItemAllocatedAmount } from './types';
 import { MOCK_BUDGET, MOCK_INVOICES } from './mockData';
 
 interface AllocationContextType {

@@ -30,7 +30,7 @@ function fmtFull(n: number): string {
 }
 
 // === Droppable Line Item Row ===
-function LineItemRow({ lineItem, catNumber }: { lineItem: BudgetLineItem; catNumber: string }) {
+function LineItemRow({ lineItem }: { lineItem: BudgetLineItem }) {
   const { invoices, removeAllocation, updateAllocationAmount, updateAllocationMode } = useAllocation();
   const thisDraw = getLineItemThisDraw(lineItem);
   const available = getLineItemAvailable(lineItem);
@@ -96,7 +96,6 @@ function LineItemRow({ lineItem, catNumber }: { lineItem: BudgetLineItem; catNum
           <AllocationRow
             key={alloc.id}
             allocation={alloc}
-            lineItemId={lineItem.id}
             invoiceAmount={invoiceAmount}
             onRemove={() => removeAllocation(lineItem.id, alloc.id)}
             onUpdateAmount={(amt) => updateAllocationAmount(lineItem.id, alloc.id, amt)}
@@ -111,14 +110,12 @@ function LineItemRow({ lineItem, catNumber }: { lineItem: BudgetLineItem; catNum
 // === Allocation Sub-Row ===
 function AllocationRow({
   allocation,
-  lineItemId,
   invoiceAmount,
   onRemove,
   onUpdateAmount,
   onUpdateMode,
 }: {
   allocation: Allocation;
-  lineItemId: string;
   invoiceAmount: number;
   onRemove: () => void;
   onUpdateAmount: (amount: number) => void;
@@ -326,7 +323,7 @@ function CategoryGroup({ category }: { category: BudgetCategory }) {
       {/* Line Items (collapsible) */}
       <Collapse in={category.expanded}>
         {category.lineItems.map(li => (
-          <LineItemRow key={li.id} lineItem={li} catNumber={category.number} />
+          <LineItemRow key={li.id} lineItem={li} />
         ))}
       </Collapse>
     </>
