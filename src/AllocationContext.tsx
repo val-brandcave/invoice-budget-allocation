@@ -11,6 +11,8 @@ interface AllocationContextType {
   addAllocation: (lineItemId: string, allocation: Omit<Allocation, 'id'>) => void;
   removeAllocation: (lineItemId: string, allocationId: string) => void;
   updateAllocationAmount: (lineItemId: string, allocationId: string, amount: number) => void;
+  updateAllocationMode: (lineItemId: string, allocationId: string, mode: 'fixed' | 'percentage', invoiceAmount: number, percentage?: number) => void;
+  updateInvoiceSummary: (invoiceId: string, summary: string) => void;
   // Computed
   totalThisDraw: number;
   totalBudgeted: number;
@@ -25,7 +27,9 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
   const [categories, setCategories] = useState<BudgetCategory[]>(() =>
     JSON.parse(JSON.stringify(MOCK_BUDGET))
   );
-  const invoices = MOCK_INVOICES;
+  const [invoices, setInvoices] = useState<Invoice[]>(() =>
+    JSON.parse(JSON.stringify(MOCK_INVOICES))
+  );
 
   const toggleCategory = useCallback((categoryId: string) => {
     setCategories(prev =>
@@ -86,6 +90,40 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
     []
   );
 
+  // percentage is % of the INVOICE amount, not the budget line
+  const updateAllocationMode = useCallback(
+    (lineItemId: string, allocationId: string, mode: 'fixed' | 'percentage', invoiceAmount: number, percentage?: number) => {
+      setCategories(prev =>
+        prev.map(cat => ({
+          ...cat,
+          lineItems: cat.lineItems.map(li => {
+            if (li.id !== lineItemId) return li;
+            return {
+              ...li,
+              allocations: li.allocations.map(a => {
+                if (a.id !== allocationId) return a;
+                if (mode === 'percentage' && percentage !== undefined) {
+                  const computedAmount = (percentage / 100) * invoiceAmount;
+                  return { ...a, mode, percentage, amount: Math.round(computedAmount * 100) / 100 };
+                }
+                return { ...a, mode: 'fixed', percentage: undefined };
+              }),
+            };
+          }),
+        }))
+      );
+    },
+    []
+  );
+
+  const updateInvoiceSummary = useCallback((invoiceId: string, summary: string) => {
+    setInvoices(prev =>
+      prev.map(inv =>
+        inv.id === invoiceId ? { ...inv, aiSummary: summary } : inv
+      )
+    );
+  }, []);
+
   const { totalThisDraw, totalBudgeted, totalAvailable } = useMemo(() => {
     let draw = 0, budgeted = 0, available = 0;
     for (const cat of categories) {
@@ -99,22 +137,6 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
     return { totalThisDraw: draw, totalBudgeted: budgeted, totalAvailable: available };
   }, [categories]);
 
-  const getRemainingForInvoice = useCallback(
-    (invoiceId: string) => {
-      const inv = invoices.find(i => i.id === invoiceId);
-      if (!inv) return 0;
-      return inv.amount - getInvoiceAllocatedAmount(inv, categories);
-    },
-    [categories, invoices]
-  );
-
-  const getRemainingForSubItem = useCallback(
-    (subItemId: string, subItemAmount: number) => {
-      return subItemAmount - getSubItemAllocatedAmount(subItemId, categories);
-    },
-    [categories]
-  );
-
   return (
     <AllocationContext.Provider
       value={{
@@ -124,6 +146,8 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
         addAllocation,
         removeAllocation,
         updateAllocationAmount,
+        updateAllocationMode,
+        updateInvoiceSummary,
         totalThisDraw,
         totalBudgeted,
         totalAvailable,

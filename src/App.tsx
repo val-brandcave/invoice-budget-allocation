@@ -16,7 +16,7 @@ import StepFooter from './components/StepFooter';
 import BudgetTable from './components/BudgetTable';
 import InvoicePanel from './components/InvoicePanel';
 import DragOverlayCard from './components/DragOverlayCard';
-import { getSubItemAllocatedAmount, getInvoiceAllocatedAmount } from './types';
+import { getInvoiceAllocatedAmount } from './types';
 import type { DragData } from './types';
 
 // Desktop layout with drag-and-drop
@@ -48,15 +48,9 @@ function DesktopLayout() {
     if (!droppableId.startsWith('drop-')) return;
     const lineItemId = droppableId.replace('drop-', '');
 
-    let amount: number;
-    if (dragData.type === 'sub-item' && dragData.subItemId) {
-      const allocated = getSubItemAllocatedAmount(dragData.subItemId, categories);
-      amount = dragData.amount - allocated;
-    } else {
-      const invoice = invoices.find(i => i.id === dragData.invoiceId);
-      if (!invoice) return;
-      amount = invoice.amount - getInvoiceAllocatedAmount(invoice, categories);
-    }
+    const invoice = invoices.find(i => i.id === dragData.invoiceId);
+    if (!invoice) return;
+    const amount = invoice.amount - getInvoiceAllocatedAmount(invoice, categories);
 
     if (amount <= 0) return;
 
@@ -80,8 +74,8 @@ function DesktopLayout() {
     >
       <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
         <StepNav />
-        <BudgetTable />
         <InvoicePanel />
+        <BudgetTable />
       </Box>
 
       <DragOverlay dropAnimation={null}>

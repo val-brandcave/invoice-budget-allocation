@@ -33,7 +33,7 @@ export default function DragOverlayCard({ data }: { data: DragData }) {
             size="small"
             sx={{ height: 18, fontSize: '0.65rem', bgcolor: 'primary.lighter', color: 'primary.dark' }}
           />
-          {data.type === 'sub-item' && (
+          {data.description !== 'Full Invoice' && (
             <Typography variant="caption" color="text.secondary" noWrap>
               {data.description}
             </Typography>

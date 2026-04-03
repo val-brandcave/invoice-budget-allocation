@@ -12,11 +12,13 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CloseIcon from '@mui/icons-material/Close';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
 import { useDroppable } from '@dnd-kit/core';
 import { useAllocation } from '../AllocationContext';
 import type { BudgetCategory, BudgetLineItem, Allocation } from '../types';
 import { getLineItemThisDraw, getLineItemAvailable } from '../types';
+
+// Shared grid template for consistent column alignment
+const GRID_COLUMNS = '52px 1fr 110px 110px 120px';
 
 // === Format helpers ===
 function fmt(n: number): string {
@@ -29,7 +31,7 @@ function fmtFull(n: number): string {
 
 // === Droppable Line Item Row ===
 function LineItemRow({ lineItem, catNumber }: { lineItem: BudgetLineItem; catNumber: string }) {
-  const { removeAllocation, updateAllocationAmount } = useAllocation();
+  const { invoices, removeAllocation, updateAllocationAmount, updateAllocationMode } = useAllocation();
   const thisDraw = getLineItemThisDraw(lineItem);
   const available = getLineItemAvailable(lineItem);
 
@@ -44,9 +46,9 @@ function LineItemRow({ lineItem, catNumber }: { lineItem: BudgetLineItem; catNum
         ref={setNodeRef}
         sx={{
           display: 'grid',
-          gridTemplateColumns: '60px 1fr 100px 100px 100px',
+          gridTemplateColumns: GRID_COLUMNS,
           alignItems: 'center',
-          px: 1.5,
+          px: 2,
           py: 0.75,
           borderBottom: '1px solid',
           borderColor: isOver ? 'primary.main' : 'grey.200',
@@ -79,6 +81,7 @@ function LineItemRow({ lineItem, catNumber }: { lineItem: BudgetLineItem; catNum
             fontFamily: 'monospace',
             fontWeight: thisDraw > 0 ? 700 : 400,
             color: thisDraw > 0 ? 'primary.main' : 'text.secondary',
+            pr: 0.5,
           }}
         >
           {thisDraw > 0 ? fmt(thisDraw) : '—'}
@@ -86,15 +89,21 @@ function LineItemRow({ lineItem, catNumber }: { lineItem: BudgetLineItem; catNum
       </Box>
 
       {/* Allocation sub-rows */}
-      {lineItem.allocations.map(alloc => (
-        <AllocationRow
-          key={alloc.id}
-          allocation={alloc}
-          lineItemId={lineItem.id}
-          onRemove={() => removeAllocation(lineItem.id, alloc.id)}
-          onUpdateAmount={(amt) => updateAllocationAmount(lineItem.id, alloc.id, amt)}
-        />
-      ))}
+      {lineItem.allocations.map(alloc => {
+        const inv = invoices.find(i => i.id === alloc.invoiceId);
+        const invoiceAmount = inv?.amount ?? 0;
+        return (
+          <AllocationRow
+            key={alloc.id}
+            allocation={alloc}
+            lineItemId={lineItem.id}
+            invoiceAmount={invoiceAmount}
+            onRemove={() => removeAllocation(lineItem.id, alloc.id)}
+            onUpdateAmount={(amt) => updateAllocationAmount(lineItem.id, alloc.id, amt)}
+            onUpdateMode={(mode, pct) => updateAllocationMode(lineItem.id, alloc.id, mode, invoiceAmount, pct)}
+          />
+        );
+      })}
     </>
   );
 }
@@ -103,32 +112,53 @@ function LineItemRow({ lineItem, catNumber }: { lineItem: BudgetLineItem; catNum
 function AllocationRow({
   allocation,
   lineItemId,
+  invoiceAmount,
   onRemove,
   onUpdateAmount,
+  onUpdateMode,
 }: {
   allocation: Allocation;
   lineItemId: string;
+  invoiceAmount: number;
   onRemove: () => void;
   onUpdateAmount: (amount: number) => void;
+  onUpdateMode: (mode: 'fixed' | 'percentage', percentage?: number) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(allocation.amount.toString());
+  const isPercentage = allocation.mode === 'percentage';
 
   const handleSave = () => {
-    const parsed = parseFloat(editValue.replace(/[^0-9.]/g, ''));
+    const cleaned = editValue.replace(/[^0-9.]/g, '');
+    const parsed = parseFloat(cleaned);
     if (!isNaN(parsed) && parsed > 0) {
-      onUpdateAmount(parsed);
+      if (isPercentage) {
+        onUpdateMode('percentage', parsed);
+      } else {
+        onUpdateAmount(parsed);
+      }
     }
     setEditing(false);
+  };
+
+  const handleToggleMode = () => {
+    if (isPercentage) {
+      onUpdateMode('fixed');
+    } else {
+      // Percentage is relative to the invoice total amount
+      const pct = invoiceAmount > 0 ? (allocation.amount / invoiceAmount) * 100 : 0;
+      onUpdateMode('percentage', Math.round(pct * 100) / 100);
+    }
   };
 
   return (
     <Box
       sx={{
         display: 'grid',
-        gridTemplateColumns: '60px 1fr 100px 100px 100px',
+        // Allocation row: # col, vendor info col, then value+actions spanning the last 3 columns
+        gridTemplateColumns: '52px 1fr',
         alignItems: 'center',
-        px: 1.5,
+        px: 2,
         py: 0.5,
         bgcolor: 'primary.lighter',
         borderBottom: '1px solid',
@@ -141,62 +171,96 @@ function AllocationRow({
       }}
     >
       <Box />
+      {/* Full-width content row: vendor info on left, value+actions on right */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 2 }}>
         <Typography variant="caption" sx={{ color: 'primary.main' }}>↳</Typography>
-        <Typography variant="caption" sx={{ fontWeight: 600 }}>
+        <Typography variant="caption" sx={{ fontWeight: 600 }} noWrap>
           {allocation.vendorName}
         </Typography>
         <Chip
           label={allocation.invoiceNumber}
           size="small"
-          sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'primary.lighter', color: 'primary.dark' }}
+          sx={{ height: 20, fontSize: '0.7rem', bgcolor: 'primary.lighter', color: 'primary.dark', flexShrink: 0 }}
         />
-        {allocation.description !== 'Full Invoice' && (
-          <Typography variant="caption" color="text.secondary" noWrap>
-            · {allocation.description}
-          </Typography>
-        )}
-      </Box>
-      <Box />
-      <Box />
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-        {editing ? (
-          <TextField
-            size="small"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-            autoFocus
-            InputProps={{
-              startAdornment: <InputAdornment position="start">$</InputAdornment>,
-            }}
-            sx={{ width: 100, '& .MuiInputBase-input': { fontSize: '0.8125rem', py: 0.5 } }}
-          />
-        ) : (
-          <Typography
-            variant="body2"
-            onClick={() => {
-              setEditValue(allocation.amount.toString());
-              setEditing(true);
-            }}
-            sx={{
-              fontFamily: 'monospace',
-              fontWeight: 600,
-              color: 'primary.main',
-              cursor: 'pointer',
-              textAlign: 'right',
-              '&:hover': { textDecoration: 'underline' },
-            }}
-          >
-            {fmtFull(allocation.amount)}
-          </Typography>
-        )}
-        <Tooltip title="Remove allocation">
-          <IconButton size="small" onClick={onRemove} sx={{ p: 0.25 }}>
-            <CloseIcon sx={{ fontSize: 14, color: 'grey.400' }} />
-          </IconButton>
-        </Tooltip>
+
+        {/* Spacer */}
+        <Box sx={{ flex: 1 }} />
+
+        {/* Value + actions — right-aligned */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+          {editing ? (
+            <TextField
+              size="small"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              autoFocus
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    {isPercentage ? '%' : '$'}
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ width: 110, '& .MuiInputBase-input': { fontSize: '0.8125rem', py: 0.5 } }}
+            />
+          ) : (
+            <Typography
+              variant="body2"
+              onClick={() => {
+                setEditValue(
+                  isPercentage
+                    ? (allocation.percentage ?? 0).toString()
+                    : allocation.amount.toString()
+                );
+                setEditing(true);
+              }}
+              sx={{
+                fontFamily: 'monospace',
+                fontWeight: 600,
+                color: 'primary.main',
+                cursor: 'pointer',
+                textAlign: 'right',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              {isPercentage
+                ? `${allocation.percentage ?? 0}%`
+                : fmtFull(allocation.amount)}
+            </Typography>
+          )}
+
+          {/* $/% toggle — ghost text button */}
+          <Tooltip title={isPercentage ? 'Switch to dollar amount' : 'Switch to percentage'}>
+            <IconButton
+              size="small"
+              onClick={handleToggleMode}
+              sx={{
+                p: 0.25,
+                width: 20,
+                height: 20,
+                borderRadius: 0.5,
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                fontFamily: 'monospace',
+                color: 'grey.400',
+                '&:hover': { color: 'primary.main', bgcolor: 'grey.100' },
+              }}
+            >
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, fontFamily: 'monospace', lineHeight: 1 }}>
+                {isPercentage ? '$' : '%'}
+              </Typography>
+            </IconButton>
+          </Tooltip>
+
+          {/* Remove */}
+          <Tooltip title="Remove allocation">
+            <IconButton size="small" onClick={onRemove} sx={{ p: 0.25, width: 20, height: 20 }}>
+              <CloseIcon sx={{ fontSize: 14, color: 'grey.400' }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
     </Box>
   );
@@ -217,9 +281,9 @@ function CategoryGroup({ category }: { category: BudgetCategory }) {
         onClick={() => toggleCategory(category.id)}
         sx={{
           display: 'grid',
-          gridTemplateColumns: '60px 1fr 100px 100px 100px',
+          gridTemplateColumns: GRID_COLUMNS,
           alignItems: 'center',
-          px: 1.5,
+          px: 2,
           py: 1,
           bgcolor: 'grey.50',
           borderBottom: '1px solid',
@@ -252,6 +316,7 @@ function CategoryGroup({ category }: { category: BudgetCategory }) {
             fontFamily: 'monospace',
             fontWeight: 600,
             color: catThisDraw > 0 ? 'primary.main' : 'text.secondary',
+            pr: 0.5,
           }}
         >
           {catThisDraw > 0 ? fmt(catThisDraw) : '—'}
@@ -277,10 +342,10 @@ export default function BudgetTable() {
   return (
     <Box
       sx={{
-        flex: '1 1 55%',
+        flex: '1 1 60%',
         display: 'flex',
         flexDirection: 'column',
-        borderRight: '1px solid',
+        borderLeft: '1px solid',
         borderColor: 'grey.200',
         height: '100vh',
         overflow: 'hidden',
@@ -323,9 +388,9 @@ export default function BudgetTable() {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: '60px 1fr 100px 100px 100px',
+          gridTemplateColumns: GRID_COLUMNS,
           alignItems: 'center',
-          px: 1.5,
+          px: 2,
           py: 0.75,
           bgcolor: 'grey.100',
           borderBottom: '2px solid',
@@ -337,7 +402,7 @@ export default function BudgetTable() {
         <Typography variant="caption" fontWeight={700} color="text.secondary">Description</Typography>
         <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textAlign: 'right' }}>Budgeted</Typography>
         <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textAlign: 'right' }}>Available</Typography>
-        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textAlign: 'right' }}>This Draw</Typography>
+        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textAlign: 'right', pr: 0.5 }}>This Draw</Typography>
       </Box>
 
       {/* Scrollable Body */}
@@ -351,9 +416,9 @@ export default function BudgetTable() {
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: '60px 1fr 100px 100px 100px',
+          gridTemplateColumns: GRID_COLUMNS,
           alignItems: 'center',
-          px: 1.5,
+          px: 2,
           py: 1,
           borderTop: '2px solid',
           borderColor: 'grey.400',
@@ -371,7 +436,7 @@ export default function BudgetTable() {
         </Typography>
         <Typography
           variant="subtitle2"
-          sx={{ textAlign: 'right', fontFamily: 'monospace', color: 'primary.main' }}
+          sx={{ textAlign: 'right', fontFamily: 'monospace', color: 'primary.main', pr: 0.5 }}
         >
           {fmtFull(totalThisDraw)}
         </Typography>
