@@ -29,6 +29,14 @@ export interface Allocation {
   percentage?: number;
 }
 
+export interface Attachment {
+  id: string;
+  fileName: string;
+  fileType: 'pdf' | 'image';
+  url: string;
+  pageCount?: number; // PDF only
+}
+
 export interface Invoice {
   id: string;
   vendorName: string;
@@ -37,6 +45,7 @@ export interface Invoice {
   receivedDate: string;
   aiSummary: string;
   subItems: InvoiceSubItem[];
+  attachments: Attachment[];
 }
 
 export interface InvoiceSubItem {
@@ -45,6 +54,34 @@ export interface InvoiceSubItem {
   amount: number;
   suggestedLineItemId?: string;
   suggestedConfidence?: number; // 0-1
+}
+
+// === Stepper Types ===
+
+export type FlowStep = 'review' | 'allocate' | 'summary';
+
+export interface DraftPaymentRequest {
+  id: string;
+  prNumber: string;
+  invoiceCount: number;
+  totalAmount: number;
+  status: 'draft' | 'queued';
+  scheduledDate?: string;
+}
+
+// P8: Pending Change Order for over-budget line items
+// A15-1: Changed from per-line-item to per-invoice COs
+export interface PendingChangeOrder {
+  id: string;
+  coNumber: string; // e.g., "CO-1001"
+  invoiceId: string; // A15-1: NEW - The invoice that caused this overage
+  lineItemId: string; // Which line item went over budget
+  amount: number; // This invoice's portion of the overage
+  reason: string; // Reason specific to this invoice
+  // Invoice context for display
+  vendorName: string;
+  invoiceNumber: string;
+  createdAt: string;
 }
 
 // === Drag Types ===
@@ -125,4 +162,73 @@ export function getInvoiceProgress(invoice: Invoice, allCategories: BudgetCatego
   const allocated = getInvoiceAllocatedAmount(invoice, allCategories);
   if (invoice.amount === 0) return 100;
   return Math.min(100, Math.round((allocated / invoice.amount) * 100));
+}
+
+// CO status for an invoice: checks if any allocations go to over-budget lines
+export type InvoiceCOStatus = 'none' | 'needs_co' | 'has_co';
+
+// A15-1: Updated to check for per-invoice COs
+export function getInvoiceCOStatus(
+  invoice: Invoice,
+  allCategories: BudgetCategory[],
+  pendingChangeOrders: PendingChangeOrder[]
+): { status: InvoiceCOStatus; overBudgetCount: number; coCount: number; coNumbers: string[] } {
+  // Find all line items where this invoice has allocations that cause overage
+  const overBudgetLineItems: { lineItemId: string; overAmount: number }[] = [];
+
+  for (const cat of allCategories) {
+    for (const li of cat.lineItems) {
+      // Check if this invoice has allocations on this line
+      const invoiceAllocations = li.allocations.filter(a => a.invoiceId === invoice.id);
+      if (invoiceAllocations.length === 0) continue;
+
+      const thisDraw = li.allocations.reduce((sum, a) => sum + a.amount, 0);
+      const available = li.budgeted - li.priorDraws - thisDraw;
+
+      if (available < 0) {
+        // This line is over budget - check if this invoice's allocation contributed
+        // Calculate running total to see if THIS invoice pushed it over
+        let runningTotal = li.priorDraws;
+        let thisInvoiceCausedOverage = false;
+
+        for (const alloc of li.allocations) {
+          const wasUnder = runningTotal <= li.budgeted;
+          runningTotal += alloc.amount;
+          const nowOver = runningTotal > li.budgeted;
+
+          if (alloc.invoiceId === invoice.id && wasUnder && nowOver) {
+            thisInvoiceCausedOverage = true;
+          } else if (alloc.invoiceId === invoice.id && !wasUnder) {
+            // Line was already over, this invoice is adding to existing overage
+            thisInvoiceCausedOverage = true;
+          }
+        }
+
+        if (thisInvoiceCausedOverage) {
+          overBudgetLineItems.push({ lineItemId: li.id, overAmount: Math.abs(available) });
+        }
+      }
+    }
+  }
+
+  if (overBudgetLineItems.length === 0) {
+    return { status: 'none', overBudgetCount: 0, coCount: 0, coNumbers: [] };
+  }
+
+  // A15-1: Check for per-invoice COs (now filtered by invoiceId)
+  const coNumbers: string[] = [];
+  let coCount = 0;
+
+  for (const item of overBudgetLineItems) {
+    const co = pendingChangeOrders.find(
+      co => co.lineItemId === item.lineItemId && co.invoiceId === invoice.id
+    );
+    if (co) {
+      coCount++;
+      coNumbers.push(co.coNumber);
+    }
+  }
+
+  const status: InvoiceCOStatus = coCount >= overBudgetLineItems.length ? 'has_co' : 'needs_co';
+  return { status, overBudgetCount: overBudgetLineItems.length, coCount, coNumbers };
 }

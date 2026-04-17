@@ -6,6 +6,8 @@ import {
   Collapse,
   Chip,
   Button,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -13,6 +15,9 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import AddIcon from '@mui/icons-material/Add';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useDraggable } from '@dnd-kit/core';
 import type { Invoice, InvoiceSubItem, BudgetCategory } from '../types';
 import {
@@ -108,7 +113,7 @@ function SubItem({
           <Typography variant="caption" fontWeight={600} noWrap sx={{ fontSize: isMobile ? '0.8rem' : undefined }}>
             {subItem.description}
           </Typography>
-          <Typography variant="caption" fontWeight={700} sx={{ fontFamily: 'monospace', flexShrink: 0, ml: 1 }}>
+          <Typography variant="caption" fontWeight={700} sx={{ flexShrink: 0, ml: 1 }}>
             {fmt(subItem.amount)}
           </Typography>
         </Box>
@@ -174,12 +179,16 @@ export default function InvoiceCard({
   categories,
   isActive,
   onSelect,
+  onEdit,
+  onRemove,
   isMobile = false,
 }: {
   invoice: Invoice;
   categories: BudgetCategory[];
   isActive: boolean;
   onSelect: () => void;
+  onEdit?: () => void;
+  onRemove?: () => void;
   isMobile?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -217,7 +226,6 @@ export default function InvoiceCard({
       <Box
         onClick={onSelect}
         sx={{
-          p: isMobile ? 2 : 1.5,
           borderRadius: 2,
           border: '1px solid',
           borderColor: 'success.light',
@@ -226,132 +234,164 @@ export default function InvoiceCard({
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
-          gap: 1,
+          gap: 0.75,
+          px: 1.5,
+          height: 36,
         }}
       >
-        <CheckCircleIcon sx={{ fontSize: isMobile ? 22 : 18, color: 'success.main' }} />
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="body2" fontWeight={600} color="text.secondary">
-            {invoice.vendorName} · {invoice.invoiceNumber}
-          </Typography>
-          <Typography variant="caption" color="success.main">
-            {fmtFull(invoice.amount)} · Fully allocated
-          </Typography>
-        </Box>
+        <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main', flexShrink: 0 }} />
+        <Typography variant="body2" fontWeight={600} color="text.secondary" noWrap sx={{ flex: 1, minWidth: 0 }}>
+          {invoice.vendorName}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+          {invoice.invoiceNumber}
+        </Typography>
+        <Typography variant="body2" fontWeight={600} color="success.main" sx={{ flexShrink: 0, ml: 0.5 }}>
+          {fmtFull(invoice.amount)}
+        </Typography>
       </Box>
     );
   }
 
   return (
     <Box
-      ref={isMobile ? undefined : setNodeRef}
-      style={style}
       onClick={onSelect}
       sx={{
         borderRadius: 2,
         border: '1px solid',
         borderColor: isActive ? 'primary.main' : isDragging ? 'primary.light' : 'grey.200',
         bgcolor: isDragging ? 'primary.lighter' : 'background.paper',
-        opacity: isDragging ? 0.8 : 1,
         overflow: 'hidden',
         boxShadow: isActive ? '0 0 0 2px rgba(25, 57, 183, 0.15)' : isDragging ? 2 : 0,
         transition: 'border-color 0.15s, box-shadow 0.15s',
         '&:hover': { borderColor: 'primary.light' },
       }}
     >
-      {/* Main card header */}
+      {/* ── HEADER ROW with drag + actions ── */}
       <Box
-        {...dragProps}
         sx={{
           display: 'flex',
-          alignItems: 'flex-start',
-          gap: 1,
-          p: isMobile ? 2 : 1.5,
-          cursor: isMobile ? 'default' : 'grab',
-          '&:active': isMobile ? {} : { cursor: 'grabbing' },
+          alignItems: 'center',
+          gap: 0.5,
+          px: 1.5,
+          py: 0.5,
+          minHeight: 40,
+          bgcolor: isDragging ? 'primary.lighter' : 'grey.50',
+          borderBottom: '1px solid',
+          borderColor: 'grey.100',
         }}
       >
-        {!isMobile && (
-          <DragIndicatorIcon sx={{ fontSize: 18, color: 'grey.400', mt: 0.25, flexShrink: 0 }} />
-        )}
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant={isMobile ? 'body1' : 'subtitle2'} fontWeight={600} noWrap>
+        {/* Drag handle area (P4: tooltip on hover) */}
+        <Tooltip title={isMobile ? '' : 'Drag and drop to allocate'} placement="top" arrow>
+          <Box
+            ref={isMobile ? undefined : setNodeRef}
+            style={style}
+            {...dragProps}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0.75,
+              flex: 1,
+              minWidth: 0,
+              cursor: isMobile ? 'default' : 'grab',
+              '&:active': isMobile ? {} : { cursor: 'grabbing' },
+              opacity: isDragging ? 0.4 : 1,
+              py: 0.25,
+              borderRadius: 1,
+              '&:hover': isMobile ? {} : { bgcolor: 'primary.lighter' },
+              transition: 'background-color 0.15s, opacity 0.15s',
+            }}
+          >
+            {!isMobile && (
+              <DragIndicatorIcon sx={{ fontSize: 16, color: 'grey.400', flexShrink: 0 }} />
+            )}
+            <Typography variant="body2" fontWeight={600} noWrap sx={{ flex: 1, minWidth: 0 }}>
               {invoice.vendorName}
             </Typography>
-            <Typography variant={isMobile ? 'body1' : 'subtitle2'} fontWeight={600} sx={{ fontFamily: 'monospace', flexShrink: 0, ml: 1 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+              {invoice.invoiceNumber}
+            </Typography>
+            <Typography variant="body2" fontWeight={700} sx={{ flexShrink: 0, ml: 0.5 }}>
               {fmtFull(invoice.amount)}
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.25 }}>
-            <Typography variant="caption" color="text.secondary">
-              {invoice.invoiceNumber}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">·</Typography>
-            <Typography variant="caption" color="text.secondary">
-              {new Date(invoice.receivedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </Typography>
-          </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }} noWrap>
-            {invoice.aiSummary}
-          </Typography>
+        </Tooltip>
 
-          {/* Progress bar */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-            <LinearProgress
-              variant="determinate"
-              value={progress}
-              sx={{
-                flex: 1,
-                height: isMobile ? 8 : 6,
-                borderRadius: 3,
-                bgcolor: 'grey.200',
-                '& .MuiLinearProgress-bar': {
-                  borderRadius: 3,
-                  bgcolor: progress === 100 ? 'success.main' : 'primary.main',
-                },
-              }}
-            />
-            <Typography variant="caption" fontWeight={600} sx={{ minWidth: 32, textAlign: 'right' }}>
-              {progress}%
-            </Typography>
-          </Box>
-
-          {/* Allocated / Remaining breakdown */}
-          {allocated > 0 && remaining > 0 && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-              <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
-                {fmtFull(allocated)} allocated
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                ·
-              </Typography>
-              <Typography variant="caption" color="warning.main" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
-                {fmtFull(remaining)} remaining
-              </Typography>
-            </Box>
-          )}
-
-          {/* Click-to-allocate */}
-          {!hasSubItems && remaining > 0 && (
-            <Button
+        {/* P3: Action icons (Plus, Edit, Remove) */}
+        {remaining > 0 && (
+          <Tooltip title="Allocate to budget" placement="top" arrow>
+            <IconButton
               size="small"
-              variant="outlined"
-              startIcon={<AddCircleOutlineIcon sx={{ fontSize: '14px !important' }} />}
               onClick={(e) => { e.stopPropagation(); setPopoverAnchor(e.currentTarget); }}
               sx={{
-                mt: 1,
-                textTransform: 'none',
-                fontSize: isMobile ? '0.85rem' : '0.75rem',
-                py: isMobile ? 0.75 : 0.25,
-                minHeight: isMobile ? 44 : undefined,
-                borderRadius: 1,
+                color: 'primary.main',
+                p: 0.5,
+                '&:hover': { bgcolor: 'primary.lighter' },
               }}
             >
-              Allocate to budget line
-            </Button>
-          )}
+              <AddIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        )}
+        {onEdit && (
+          <Tooltip title="Edit invoice" placement="top" arrow>
+            <IconButton
+              size="small"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              sx={{
+                color: 'text.secondary',
+                p: 0.5,
+                '&:hover': { bgcolor: 'grey.200' },
+              }}
+            >
+              <EditOutlinedIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        )}
+        {onRemove && (
+          <Tooltip title="Remove from request" placement="top" arrow>
+            <IconButton
+              size="small"
+              onClick={(e) => { e.stopPropagation(); onRemove(); }}
+              sx={{
+                color: 'error.main',
+                p: 0.5,
+                '&:hover': { bgcolor: 'error.lighter' },
+              }}
+            >
+              <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
+
+      {/* ── DETAIL SECTION — static, not draggable ── */}
+      <Box sx={{ px: 1.5, py: 1 }}>
+        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', fontSize: '0.7rem' }}>
+          {invoice.aiSummary}
+        </Typography>
+
+        {/* Progress bar */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75 }}>
+          <LinearProgress
+            variant="determinate"
+            value={progress}
+            sx={{
+              flex: 1,
+              height: isMobile ? 8 : 5,
+              borderRadius: 3,
+              bgcolor: 'grey.200',
+              '& .MuiLinearProgress-bar': {
+                borderRadius: 3,
+                bgcolor: progress === 100 ? 'success.main' : 'primary.main',
+              },
+            }}
+          />
+          <Typography variant="caption" fontWeight={600} sx={{ minWidth: 52, textAlign: 'right', fontSize: '0.7rem' }}>
+            {fmtFull(allocated)}
+          </Typography>
         </Box>
+        {/* P5: Removed "Allocate to Budget" button - replaced by Plus icon in header (P3) */}
       </Box>
 
       {/* Expandable sub-items section */}
