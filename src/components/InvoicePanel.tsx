@@ -42,7 +42,7 @@ import {
   getInvoiceStatus,
   getInvoiceCOStatus,
 } from '../types';
-import type { Invoice, BudgetCategory, InvoiceCOStatus } from '../types';
+import type { Invoice, BudgetCategory } from '../types';
 import AllocatePopover from './AllocatePopover';
 import AttachmentViewer from './AttachmentViewer';
 import EditInvoicesModal from './EditInvoicesModal';
@@ -573,10 +573,6 @@ export default function InvoicePanel({ isMobile = false }: { isMobile?: boolean 
   const [tabRemoveConfirmOpen, setTabRemoveConfirmOpen] = useState(false);
 
   const currentInvoice = invoices[currentIndex] || null;
-
-  const fullyAllocatedCount = invoices.filter(
-    inv => getInvoiceStatus(inv, categories) === 'fully_allocated'
-  ).length;
 
   const handlePrev = () => setCurrentIndex(i => Math.max(0, i - 1));
   const handleNext = () => setCurrentIndex(i => Math.min(invoices.length - 1, i + 1));
