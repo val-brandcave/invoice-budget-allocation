@@ -808,7 +808,6 @@ export default function InvoicePanel({ isMobile = false }: { isMobile?: boolean 
             const invStatus = getInvoiceStatus(inv, categories);
             const isAllocated = invStatus === 'fully_allocated';
             const invCOStatus = getInvoiceCOStatus(inv, categories, pendingChangeOrders);
-            const isActive = idx === currentIndex;
             // Extract last 4 characters of invoice number for badge
             const invoiceBadge = inv.invoiceNumber.slice(-4);
 
