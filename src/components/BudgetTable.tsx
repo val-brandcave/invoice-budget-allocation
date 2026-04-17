@@ -179,7 +179,7 @@ function AllocationRow({
   pendingCO,
   onCreateCO,
   onRemoveCO,
-  nextCONumber,
+  nextCONumber: _nextCONumber,
   totalCOAmountForLineItem,
 }: {
   allocation: Allocation;
@@ -699,9 +699,7 @@ function CategoryGroup({ category }: { category: BudgetCategory }) {
 
 // === Main Budget Table ===
 export default function BudgetTable() {
-  const { categories, invoices, totalThisDraw, totalBudgeted, totalAvailable } = useAllocation();
-
-  const invoiceCount = invoices.length;
+  const { categories, totalThisDraw, totalBudgeted, totalAvailable } = useAllocation();
 
   return (
     <Box
