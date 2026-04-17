@@ -40,7 +40,7 @@ function fmtFull(n: number): string {
 // === Droppable Line Item Row ===
 // A15-1: Refactored - CO logic moved to AllocationRow level
 function LineItemRow({ lineItem }: { lineItem: BudgetLineItem }) {
-  const { invoices, removeAllocation, updateAllocationAmount, updateAllocationMode, getChangeOrderForLineItem, getChangeOrderForAllocation, createChangeOrder, removeChangeOrder, nextCONumber, pendingChangeOrders, getTotalCOAmountForLineItem } = useAllocation();
+  const { invoices, removeAllocation, updateAllocationAmount, updateAllocationMode, getChangeOrderForAllocation, createChangeOrder, removeChangeOrder, nextCONumber, pendingChangeOrders, getTotalCOAmountForLineItem } = useAllocation();
   const thisDraw = getLineItemThisDraw(lineItem);
   const available = getLineItemAvailable(lineItem);
   const isOverBudget = available < 0;

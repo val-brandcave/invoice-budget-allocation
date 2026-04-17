@@ -46,7 +46,7 @@ function truncateFileName(name: string, max = 18): string {
 
 export default function AttachmentViewer({
   attachments,
-  isMobile = false,
+  isMobile: _isMobile = false,
 }: {
   attachments: Attachment[];
   isMobile?: boolean;
