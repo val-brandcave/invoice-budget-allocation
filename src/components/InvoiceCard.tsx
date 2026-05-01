@@ -89,7 +89,7 @@ function SubItem({
         gap: 1,
         px: 1.5,
         py: isMobile ? 1.25 : 0.75,
-        borderRadius: 1,
+        borderRadius: 0,
         bgcolor: isFullyAllocated ? 'success.lighter' : 'grey.50',
         border: '1px solid',
         borderColor: isFullyAllocated ? 'success.light' : 'grey.200',
@@ -97,7 +97,7 @@ function SubItem({
         cursor: isMobile ? 'default' : isFullyAllocated ? 'default' : 'grab',
         '&:hover': (isMobile || isFullyAllocated)
           ? {}
-          : { borderColor: 'primary.main', bgcolor: 'primary.lighter' },
+          : { borderColor: 'info.main', bgcolor: 'info.lighter' },
         transition: 'all 0.15s',
       }}
     >
@@ -122,7 +122,7 @@ function SubItem({
         {allocations.length > 0 && (
           <Box sx={{ mt: 0.25 }}>
             {allocations.map((a, i) => (
-              <Typography key={i} variant="caption" color="primary.main" sx={{ display: 'block', fontSize: '0.675rem' }}>
+              <Typography key={i} variant="caption" color="info.main" sx={{ display: 'block', fontSize: '0.675rem' }}>
                 → {a.lineItemNumber} {a.lineItemDesc} {fmtFull(a.amount)}
               </Typography>
             ))}
@@ -151,7 +151,7 @@ function SubItem({
               fontSize: isMobile ? '0.8rem' : '0.7rem',
               py: isMobile ? 0.5 : 0,
               minHeight: isMobile ? 36 : 24,
-              color: 'primary.main',
+              color: 'info.main',
             }}
           >
             Allocate
@@ -226,7 +226,7 @@ export default function InvoiceCard({
       <Box
         onClick={onSelect}
         sx={{
-          borderRadius: 2,
+          borderRadius: 0,
           border: '1px solid',
           borderColor: 'success.light',
           bgcolor: 'success.lighter',
@@ -257,14 +257,14 @@ export default function InvoiceCard({
     <Box
       onClick={onSelect}
       sx={{
-        borderRadius: 2,
+        borderRadius: 0,
         border: '1px solid',
-        borderColor: isActive ? 'primary.main' : isDragging ? 'primary.light' : 'grey.200',
-        bgcolor: isDragging ? 'primary.lighter' : 'background.paper',
+        borderColor: isActive ? 'info.main' : isDragging ? 'info.light' : 'grey.200',
+        bgcolor: isDragging ? 'info.lighter' : 'background.paper',
         overflow: 'hidden',
         boxShadow: isActive ? '0 0 0 2px rgba(25, 57, 183, 0.15)' : isDragging ? 2 : 0,
         transition: 'border-color 0.15s, box-shadow 0.15s',
-        '&:hover': { borderColor: 'primary.light' },
+        '&:hover': { borderColor: 'info.light' },
       }}
     >
       {/* ── HEADER ROW with drag + actions ── */}
@@ -276,7 +276,7 @@ export default function InvoiceCard({
           px: 1.5,
           py: 0.5,
           minHeight: 40,
-          bgcolor: isDragging ? 'primary.lighter' : 'grey.50',
+          bgcolor: isDragging ? 'info.lighter' : 'grey.50',
           borderBottom: '1px solid',
           borderColor: 'grey.100',
         }}
@@ -297,8 +297,8 @@ export default function InvoiceCard({
               '&:active': isMobile ? {} : { cursor: 'grabbing' },
               opacity: isDragging ? 0.4 : 1,
               py: 0.25,
-              borderRadius: 1,
-              '&:hover': isMobile ? {} : { bgcolor: 'primary.lighter' },
+              borderRadius: 0,
+              '&:hover': isMobile ? {} : { bgcolor: 'info.lighter' },
               transition: 'background-color 0.15s, opacity 0.15s',
             }}
           >
@@ -324,9 +324,9 @@ export default function InvoiceCard({
               size="small"
               onClick={(e) => { e.stopPropagation(); setPopoverAnchor(e.currentTarget); }}
               sx={{
-                color: 'primary.main',
+                color: 'info.main',
                 p: 0.5,
-                '&:hover': { bgcolor: 'primary.lighter' },
+                '&:hover': { bgcolor: 'info.lighter' },
               }}
             >
               <AddIcon sx={{ fontSize: 18 }} />
@@ -379,11 +379,11 @@ export default function InvoiceCard({
             sx={{
               flex: 1,
               height: isMobile ? 8 : 5,
-              borderRadius: 3,
+              borderRadius: 0,
               bgcolor: 'grey.200',
               '& .MuiLinearProgress-bar': {
-                borderRadius: 3,
-                bgcolor: progress === 100 ? 'success.main' : 'primary.main',
+                borderRadius: 0,
+                bgcolor: progress === 100 ? 'success.main' : 'info.main',
               },
             }}
           />

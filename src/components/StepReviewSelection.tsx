@@ -60,8 +60,8 @@ function InvoiceRow({
           height: 32,
           fontSize: '0.7rem',
           fontWeight: 700,
-          bgcolor: selected ? 'primary.lighter' : 'grey.200',
-          color: selected ? 'primary.dark' : 'text.secondary',
+          bgcolor: selected ? 'info.lighter' : 'grey.200',
+          color: selected ? 'info.dark' : 'text.secondary',
         }}
       >
         {getInitials(invoice.vendorName)}
@@ -87,10 +87,10 @@ function InvoiceRow({
           '&:hover': { color: 'error.main', bgcolor: (t) => alpha(t.palette.error.main, 0.08) },
         } : {
           p: 0.5,
-          color: 'primary.main',
+          color: 'info.main',
           border: 1,
-          borderColor: 'primary.main',
-          '&:hover': { bgcolor: (t) => alpha(t.palette.primary.main, 0.08) },
+          borderColor: 'info.main',
+          '&:hover': { bgcolor: (t) => alpha(t.palette.info.main, 0.08) },
         }}
       >
         {selected ? <CloseIcon sx={{ fontSize: 16 }} /> : <AddIcon sx={{ fontSize: 16 }} />}
@@ -139,7 +139,7 @@ export default function StepReviewSelection() {
           variant="outlined"
           sx={{
             borderRadius: 1.5,
-            borderColor: 'primary.main',
+            borderColor: 'info.main',
             borderWidth: 2,
             overflow: 'hidden',
             mb: 2.5,
@@ -149,7 +149,7 @@ export default function StepReviewSelection() {
             sx={{
               px: 2,
               py: 1.25,
-              bgcolor: (t) => alpha(t.palette.primary.main, 0.04),
+              bgcolor: (t) => alpha(t.palette.info.main, 0.04),
               borderBottom: 1,
               borderColor: 'divider',
             }}
@@ -299,8 +299,8 @@ export default function StepReviewSelection() {
                     py: 0.75,
                     borderRadius: 1,
                     border: 1,
-                    borderColor: effectiveSelected === opt.id ? 'primary.main' : 'divider',
-                    bgcolor: effectiveSelected === opt.id ? (t) => alpha(t.palette.primary.main, 0.04) : 'transparent',
+                    borderColor: effectiveSelected === opt.id ? 'info.main' : 'divider',
+                    bgcolor: effectiveSelected === opt.id ? (t) => alpha(t.palette.info.main, 0.04) : 'transparent',
                     mb: 0.75,
                     '&:last-of-type': { mb: 0 },
                     '&:hover': { bgcolor: 'action.hover' },

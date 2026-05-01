@@ -2,6 +2,15 @@ import React, { createContext, useContext, useState, useCallback, useMemo } from
 import type { BudgetCategory, Invoice, Allocation, FlowStep, DraftPaymentRequest, PendingChangeOrder } from './types';
 import { MOCK_BUDGET, MOCK_INVOICES, INITIAL_SELECTED_IDS, MOCK_DRAFT_PRS } from './mockData';
 
+// Document attachment for CO summary
+export interface CODocument {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+}
+
 interface AllocationContextType {
   categories: BudgetCategory[];
   invoices: Invoice[];
@@ -15,6 +24,9 @@ interface AllocationContextType {
   showCompletionModal: boolean;
   setShowCompletionModal: (show: boolean) => void;
   completeFlow: () => void;
+  // CO Summary modal
+  showCOSummaryModal: boolean;
+  setShowCOSummaryModal: (show: boolean) => void;
   // Invoice selection (Step 1)
   allInvoices: Invoice[];
   selectedIds: Set<string>;
@@ -36,7 +48,8 @@ interface AllocationContextType {
   // P8: Pending Change Orders
   // A15-1: Updated to per-invoice COs
   pendingChangeOrders: PendingChangeOrder[];
-  nextCONumber: string;
+  /** Single CO number used for all adjustments in this session */
+  sessionCONumber: string;
   createChangeOrder: (
     lineItemId: string,
     invoiceId: string,
@@ -46,11 +59,24 @@ interface AllocationContextType {
     reason: string
   ) => void;
   removeChangeOrder: (changeOrderId: string) => void;
+  updateChangeOrder: (changeOrderId: string, amount: number, reason: string) => void;
   getChangeOrderForLineItem: (lineItemId: string) => PendingChangeOrder | undefined;
   // A15-1: New helper to get CO for specific invoice+lineItem combo
   getChangeOrderForAllocation: (lineItemId: string, invoiceId: string) => PendingChangeOrder | undefined;
   // Get total CO amount already requested for a line item (across all invoices)
   getTotalCOAmountForLineItem: (lineItemId: string) => number;
+  /** True if all over-budget allocations have a corresponding CO */
+  allAdjustmentsResolved: boolean;
+  /** Number of over-budget allocations missing a CO */
+  unresolvedAdjustmentCount: number;
+  // CO Summary state
+  coSummaryTitle: string;
+  setCOSummaryTitle: (title: string) => void;
+  coSummaryDescription: string;
+  setCOSummaryDescription: (desc: string) => void;
+  coSummaryDocuments: CODocument[];
+  addCOSummaryDocument: (doc: CODocument) => void;
+  removeCOSummaryDocument: (docId: string) => void;
   // Computed
   totalThisDraw: number;
   totalBudgeted: number;
@@ -62,7 +88,9 @@ const AllocationContext = createContext<AllocationContextType | null>(null);
 
 let allocIdCounter = 0;
 let coIdCounter = 0;
-let coNumberCounter = 1000; // CO numbers start at CO-1001
+
+// Session CO number — generated once for the entire PR session
+const SESSION_CO_NUMBER = 'BA-2026-001';
 
 export function AllocationProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<BudgetCategory[]>(() =>
@@ -75,8 +103,14 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set(INITIAL_SELECTED_IDS));
   const [selectedPRId, setSelectedPRId] = useState<string>('');
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [showCOSummaryModal, setShowCOSummaryModal] = useState(false);
   const [pendingChangeOrders, setPendingChangeOrders] = useState<PendingChangeOrder[]>([]);
   const draftPRs = MOCK_DRAFT_PRS;
+
+  // CO Summary form state
+  const [coSummaryTitle, setCOSummaryTitle] = useState('');
+  const [coSummaryDescription, setCOSummaryDescription] = useState('');
+  const [coSummaryDocuments, setCOSummaryDocuments] = useState<CODocument[]>([]);
 
   const selectedInvoices = useMemo(
     () => allInvoices.filter(inv => selectedIds.has(inv.id)),
@@ -227,8 +261,7 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
     );
   }, []);
 
-  // P8: Create a change order for an over-budget line item
-  // A15-1: Now per-invoice - requires invoiceId and invoice details
+  // All COs in this session use the same CO number
   const createChangeOrder = useCallback((
     lineItemId: string,
     invoiceId: string,
@@ -239,7 +272,7 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
   ) => {
     const newCO: PendingChangeOrder = {
       id: `co-${++coIdCounter}`,
-      coNumber: `CO-${++coNumberCounter}`,
+      coNumber: SESSION_CO_NUMBER,
       invoiceId,
       lineItemId,
       amount,
@@ -252,43 +285,59 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
     setPendingChangeOrders(prev => [...prev, newCO]);
   }, []);
 
-  // P8: Remove a pending change order
   const removeChangeOrder = useCallback((changeOrderId: string) => {
     setPendingChangeOrders(prev => prev.filter(co => co.id !== changeOrderId));
   }, []);
 
-  // P8: Get the change order for a specific line item (if any)
-  // A15-1: Returns first CO for line item (for backward compat display)
+  const updateChangeOrder = useCallback((changeOrderId: string, amount: number, reason: string) => {
+    setPendingChangeOrders(prev =>
+      prev.map(co =>
+        co.id === changeOrderId ? { ...co, amount, reason } : co
+      )
+    );
+  }, []);
+
   const getChangeOrderForLineItem = useCallback((lineItemId: string) => {
     return pendingChangeOrders.find(co => co.lineItemId === lineItemId);
   }, [pendingChangeOrders]);
 
-  // A15-1: Get CO for specific invoice+lineItem combo
   const getChangeOrderForAllocation = useCallback((lineItemId: string, invoiceId: string) => {
     return pendingChangeOrders.find(
       co => co.lineItemId === lineItemId && co.invoiceId === invoiceId
     );
   }, [pendingChangeOrders]);
 
-  // Get total CO amount already requested for a line item (across all invoices)
   const getTotalCOAmountForLineItem = useCallback((lineItemId: string) => {
     return pendingChangeOrders
       .filter(co => co.lineItemId === lineItemId)
       .reduce((sum, co) => sum + co.amount, 0);
   }, [pendingChangeOrders]);
 
+  // CO Summary document handlers
+  const addCOSummaryDocument = useCallback((doc: CODocument) => {
+    setCOSummaryDocuments(prev => [...prev, doc]);
+  }, []);
+
+  const removeCOSummaryDocument = useCallback((docId: string) => {
+    setCOSummaryDocuments(prev => prev.filter(d => d.id !== docId));
+  }, []);
+
   const { totalThisDraw, totalBudgeted, totalAvailable } = useMemo(() => {
     let draw = 0, budgeted = 0, available = 0;
     for (const cat of categories) {
       for (const li of cat.lineItems) {
         const thisDraw = li.allocations.reduce((s, a) => s + a.amount, 0);
-        budgeted += li.budgeted;
-        available += li.budgeted - li.priorDraws - thisDraw;
+        // Include pending CO amounts in provisional budget
+        const coAmount = pendingChangeOrders
+          .filter(co => co.lineItemId === li.id)
+          .reduce((s, co) => s + co.amount, 0);
+        budgeted += li.budgeted + coAmount;
+        available += li.budgeted + coAmount - li.priorDraws - thisDraw;
         draw += thisDraw;
       }
     }
     return { totalThisDraw: draw, totalBudgeted: budgeted, totalAvailable: available };
-  }, [categories]);
+  }, [categories, pendingChangeOrders]);
 
   const allInvoicesAllocated = useMemo(() => {
     return selectedInvoices.every(inv => {
@@ -304,10 +353,59 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
     });
   }, [selectedInvoices, categories]);
 
-  // Single-step flow: only check if all invoices are allocated
+  // Check if all over-budget allocations have corresponding COs
+  const { allAdjustmentsResolved, unresolvedAdjustmentCount } = useMemo(() => {
+    let unresolved = 0;
+
+    for (const cat of categories) {
+      for (const li of cat.lineItems) {
+        const thisDraw = li.allocations.reduce((s, a) => s + a.amount, 0);
+        const available = li.budgeted - li.priorDraws - thisDraw;
+
+        if (available < 0) {
+          // Line is over budget — check each invoice's allocation
+          for (const inv of selectedInvoices) {
+            const invoiceAllocs = li.allocations.filter(a => a.invoiceId === inv.id);
+            if (invoiceAllocs.length === 0) continue;
+
+            // Check if line was already over budget before this invoice
+            let runningTotal = li.priorDraws;
+            let thisInvoiceCausedOverage = false;
+
+            for (const alloc of li.allocations) {
+              const wasUnder = runningTotal <= li.budgeted;
+              runningTotal += alloc.amount;
+              const nowOver = runningTotal > li.budgeted;
+
+              if (alloc.invoiceId === inv.id && ((wasUnder && nowOver) || !wasUnder)) {
+                thisInvoiceCausedOverage = true;
+              }
+            }
+
+            if (thisInvoiceCausedOverage) {
+              // Check if a CO exists for this invoice+line combo
+              const hasCO = pendingChangeOrders.some(
+                co => co.lineItemId === li.id && co.invoiceId === inv.id
+              );
+              if (!hasCO) {
+                unresolved++;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      allAdjustmentsResolved: unresolved === 0,
+      unresolvedAdjustmentCount: unresolved,
+    };
+  }, [categories, selectedInvoices, pendingChangeOrders]);
+
+  // Can proceed: all invoices allocated AND all adjustments resolved
   const canProceed = useMemo(() => {
-    return allInvoicesAllocated;
-  }, [allInvoicesAllocated]);
+    return allInvoicesAllocated && allAdjustmentsResolved;
+  }, [allInvoicesAllocated, allAdjustmentsResolved]);
 
   // Auto-select first PR if none selected
   React.useEffect(() => {
@@ -318,20 +416,21 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
     }
   }, [draftPRs, selectedPRId]);
 
-  // Single-step flow: next shows the completion modal
+  // goNext: if there are pending COs, show CO summary first; otherwise show completion
   const goNext = useCallback(() => {
-    setShowCompletionModal(true);
-  }, []);
+    if (pendingChangeOrders.length > 0) {
+      setShowCOSummaryModal(true);
+    } else {
+      setShowCompletionModal(true);
+    }
+  }, [pendingChangeOrders.length]);
 
-  // Single-step flow: no back navigation needed
   const goBack = useCallback(() => {
     // No-op in single-step flow
   }, []);
 
   const completeFlow = useCallback(() => {
-    // This would submit the PR in a real app
     setShowCompletionModal(false);
-    // For now, just close the modal
   }, []);
 
   return (
@@ -347,6 +446,8 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
         showCompletionModal,
         setShowCompletionModal,
         completeFlow,
+        showCOSummaryModal,
+        setShowCOSummaryModal,
         allInvoices,
         selectedIds,
         toggleInvoice,
@@ -363,12 +464,22 @@ export function AllocationProvider({ children }: { children: React.ReactNode }) 
         updateAllocationMode,
         updateInvoiceSummary,
         pendingChangeOrders,
-        nextCONumber: `CO-${coNumberCounter + 1}`,
+        sessionCONumber: SESSION_CO_NUMBER,
         createChangeOrder,
         removeChangeOrder,
+        updateChangeOrder,
         getChangeOrderForLineItem,
         getChangeOrderForAllocation,
         getTotalCOAmountForLineItem,
+        allAdjustmentsResolved,
+        unresolvedAdjustmentCount,
+        coSummaryTitle,
+        setCOSummaryTitle,
+        coSummaryDescription,
+        setCOSummaryDescription,
+        coSummaryDocuments,
+        addCOSummaryDocument,
+        removeCOSummaryDocument,
         totalThisDraw,
         totalBudgeted,
         totalAvailable,

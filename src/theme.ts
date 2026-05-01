@@ -1,55 +1,55 @@
 import { createTheme } from '@mui/material/styles';
 import type { ThemeOptions } from '@mui/material/styles';
 
-// ── Palette (mirrors src/theme/palette.ts) ──
+// ── Palette (mirrors src/theme/palette.ts — Softriver Brand Refresh) ──
 
 const palette = {
   primary: {
-    lighter: '#c5e4f5',
-    light: '#5ba3c5',
-    main: '#3980a5',
-    dark: '#2d6a8a',
-    darker: '#1a4f6b',
+    lighter: '#B8C5D0',
+    light: '#4A6274',
+    main: '#020B2B',
+    dark: '#010818',
+    darker: '#00030C',
     contrastText: '#ffffff',
   },
   secondary: {
-    lighter: '#e0e7ff',
-    light: '#a5b4fc',
-    main: '#6366f1',
-    dark: '#4f46e5',
-    darker: '#3730a3',
-    contrastText: '#ffffff',
+    lighter: '#FEF6EC',
+    light: '#F5D0A0',
+    main: '#EEB670',
+    dark: '#C99450',
+    darker: '#8A6530',
+    contrastText: '#18181b',
   },
   info: {
-    lighter: '#cafdf5',
-    light: '#61f3f3',
-    main: '#00b8d9',
-    dark: '#006c9c',
-    darker: '#003768',
+    lighter: '#DBEAFE',
+    light: '#60A5FA',
+    main: '#3B82F6',
+    dark: '#2563EB',
+    darker: '#1D4ED8',
     contrastText: '#ffffff',
   },
   success: {
-    lighter: '#d3fcd2',
-    light: '#22c55e',
-    main: '#118d57',
-    dark: '#0a7b4a',
-    darker: '#065e49',
+    lighter: '#DCFCE7',
+    light: '#4ADE80',
+    main: '#16A34A',
+    dark: '#15803D',
+    darker: '#166534',
     contrastText: '#ffffff',
   },
   warning: {
-    lighter: '#fff5cc',
-    light: '#ffd666',
-    main: '#ffab00',
-    dark: '#b76e00',
-    darker: '#7a4100',
-    contrastText: '#18181b',
+    lighter: '#FDF4DC',
+    light: '#D4A846',
+    main: '#B8922E',
+    dark: '#8A6B1A',
+    darker: '#6B5214',
+    contrastText: '#ffffff',
   },
   error: {
-    lighter: '#ffe9d5',
-    light: '#ffac82',
-    main: '#ff5630',
-    dark: '#b71d18',
-    darker: '#7a0916',
+    lighter: '#FEE2E2',
+    light: '#F87171',
+    main: '#DC2626',
+    dark: '#B91C1C',
+    darker: '#991B1B',
     contrastText: '#ffffff',
   },
   grey: {
@@ -70,10 +70,10 @@ const palette = {
     disabled: '#919eab',
   },
   background: {
-    default: '#ffffff',
+    default: '#F7F7F5',
     paper: '#ffffff',
   },
-  divider: 'rgba(145, 158, 171, 0.16)',
+  divider: 'rgba(145, 158, 171, 0.20)',
   action: {
     active: '#637381',
     hover: 'rgba(145, 158, 171, 0.08)',
@@ -84,67 +84,69 @@ const palette = {
   },
 } as const;
 
-// ── Shadows (from Figma Design System) ──
+// ── Shadows (from main app — flat, subtle) ──
 
 const shadows = [
   'none',
+  '0px 1px 2px 0px rgba(145, 158, 171, 0.12)',
   '0px 1px 2px 0px rgba(145, 158, 171, 0.16)',
-  '0px 1px 2px 0px rgba(145, 158, 171, 0.20)',
+  '0px 1px 3px 0px rgba(0, 0, 0, 0.06)',
   '0px 2px 4px 0px rgba(145, 158, 171, 0.16)',
-  '0px 4px 8px 0px rgba(145, 158, 171, 0.16)',
-  '0px 8px 16px 0px rgba(145, 158, 171, 0.16)',
-  '0px 12px 24px -4px rgba(145, 158, 171, 0.16)',
-  '0px 16px 32px -4px rgba(145, 158, 171, 0.16)',
-  '0px 20px 40px -4px rgba(145, 158, 171, 0.16)',
-  '0px 24px 48px 0px rgba(145, 158, 171, 0.16)',
-  '0px 8px 16px 0px rgba(29, 59, 102, 0.24)',
-  '0px 8px 16px 0px rgba(83, 172, 232, 0.24)',
-  '0px 8px 16px 0px rgba(0, 184, 217, 0.24)',
-  '0px 8px 16px 0px rgba(34, 197, 94, 0.24)',
-  '0px 8px 16px 0px rgba(255, 171, 0, 0.24)',
-  '0px 8px 16px 0px rgba(255, 86, 48, 0.24)',
-  ...Array(9).fill('none'),
+  '0px 2px 6px 0px rgba(145, 158, 171, 0.16)',
+  '0px 8px 16px -4px rgba(0, 0, 0, 0.08)',
+  '0px 8px 16px -4px rgba(0, 0, 0, 0.08)',
+  '0px 16px 32px -4px rgba(0, 0, 0, 0.12)',
+  '0px 20px 40px -4px rgba(0, 0, 0, 0.12)',
+  '0px 4px 12px 0px rgba(2, 11, 43, 0.20)',
+  '0px 4px 12px 0px rgba(238, 182, 112, 0.20)',
+  '0px 4px 12px 0px rgba(59, 130, 246, 0.20)',
+  '0px 4px 12px 0px rgba(22, 163, 74, 0.20)',
+  '0px 4px 12px 0px rgba(184, 146, 46, 0.20)',
+  '0px 4px 12px 0px rgba(220, 38, 38, 0.20)',
+  ...Array(8).fill('none'),
 ] as ThemeOptions['shadows'];
 
-// ── Typography (mirrors src/theme/typography.ts) ──
+// ── Typography (Inter — unified font per main app) ──
+
+const FONT = '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
 
 const typography = {
-  fontFamily: '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  fontFamily: FONT,
 
   h1: {
-    fontFamily: '"Outfit", sans-serif',
+    fontFamily: FONT,
     fontWeight: 700,
     fontSize: '2.5rem',
     lineHeight: 1.2,
     letterSpacing: '-0.02em',
   },
   h2: {
-    fontFamily: '"Outfit", sans-serif',
+    fontFamily: FONT,
     fontWeight: 700,
     fontSize: '2rem',
     lineHeight: 1.3,
     letterSpacing: '-0.01em',
   },
   h3: {
-    fontFamily: '"Outfit", sans-serif',
+    fontFamily: FONT,
     fontWeight: 700,
     fontSize: '1.5rem',
     lineHeight: 1.4,
   },
   h4: {
-    fontFamily: '"Outfit", sans-serif',
+    fontFamily: FONT,
     fontWeight: 700,
     fontSize: '1.25rem',
     lineHeight: 1.4,
   },
   h5: {
-    fontFamily: '"Outfit", sans-serif',
+    fontFamily: FONT,
     fontWeight: 700,
     fontSize: '1.125rem',
     lineHeight: 1.5,
   },
   h6: {
-    fontFamily: '"Outfit", sans-serif',
+    fontFamily: FONT,
     fontWeight: 700,
     fontSize: '1rem',
     lineHeight: 1.5,
@@ -189,7 +191,7 @@ const typography = {
   },
 };
 
-// ── Component overrides (mirrors src/theme/index.ts) ──
+// ── Component overrides (0px border radius throughout) ──
 
 const components: ThemeOptions['components'] = {
   MuiCssBaseline: {
@@ -205,13 +207,13 @@ const components: ThemeOptions['components'] = {
           '&::-webkit-inner-spin-button': { margin: 0, WebkitAppearance: 'none' },
         },
       },
-      a: { color: palette.primary.main, textDecoration: 'none' },
+      a: { color: palette.info.main, textDecoration: 'none' },
     },
   },
   MuiButton: {
     styleOverrides: {
       root: {
-        borderRadius: 8,
+        borderRadius: 0,
         textTransform: 'none',
         fontWeight: 600,
       },
@@ -230,37 +232,62 @@ const components: ThemeOptions['components'] = {
   MuiOutlinedInput: {
     styleOverrides: {
       root: {
-        borderRadius: 8,
+        borderRadius: 0,
         '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(145, 158, 171, 0.32)' },
         '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: palette.text.primary },
-        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: palette.primary.main },
+        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: palette.info.main },
       },
     },
   },
   MuiCard: {
     styleOverrides: {
-      root: { borderRadius: 16, boxShadow: shadows![5] },
+      root: { borderRadius: 0, boxShadow: shadows![3] },
     },
   },
   MuiPaper: {
     styleOverrides: {
-      root: { backgroundImage: 'none' },
-      rounded: { borderRadius: 16 },
+      root: { backgroundImage: 'none', borderRadius: 0 },
+      rounded: { borderRadius: 0 },
+    },
+  },
+  MuiDialog: {
+    styleOverrides: {
+      paper: { borderRadius: 0 },
     },
   },
   MuiAvatar: {
     styleOverrides: {
-      root: { fontSize: '0.875rem', fontWeight: 600 },
+      root: { fontSize: '0.875rem', fontWeight: 600, borderRadius: 0 },
     },
   },
   MuiChip: {
     styleOverrides: {
-      root: { fontWeight: 500 },
+      root: { fontWeight: 500, borderRadius: 0 },
     },
   },
   MuiTab: {
     styleOverrides: {
       root: { textTransform: 'none', fontWeight: 600 },
+    },
+  },
+  MuiTooltip: {
+    styleOverrides: {
+      tooltip: { borderRadius: 0 },
+    },
+  },
+  MuiAlert: {
+    styleOverrides: {
+      root: { borderRadius: 0 },
+    },
+  },
+  MuiPopover: {
+    styleOverrides: {
+      paper: { borderRadius: 0 },
+    },
+  },
+  MuiMenu: {
+    styleOverrides: {
+      paper: { borderRadius: 0 },
     },
   },
 };
@@ -284,7 +311,7 @@ const theme = createTheme({
   },
   typography,
   spacing: 8,
-  shape: { borderRadius: 8 },
+  shape: { borderRadius: 0 },
   shadows,
   components,
 });

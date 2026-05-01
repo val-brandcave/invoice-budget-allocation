@@ -134,7 +134,7 @@ export default function StepSummary() {
           sx={{
             border: 1,
             borderColor: 'divider',
-            borderRadius: 2,
+            borderRadius: 0,
             overflow: 'hidden',
             mb: 2.5,
           }}
@@ -186,10 +186,10 @@ export default function StepSummary() {
                     mx: 0,
                     px: 1.5,
                     py: 0.75,
-                    borderRadius: 1,
+                    borderRadius: 0,
                     border: 1,
-                    borderColor: effectiveSelected === opt.id ? 'primary.main' : 'divider',
-                    bgcolor: effectiveSelected === opt.id ? (t) => alpha(t.palette.primary.main, 0.04) : 'transparent',
+                    borderColor: effectiveSelected === opt.id ? 'info.main' : 'divider',
+                    bgcolor: effectiveSelected === opt.id ? (t) => alpha(t.palette.info.main, 0.04) : 'transparent',
                     mb: 0.75,
                     '&:last-of-type': { mb: 0 },
                     '&:hover': { bgcolor: 'action.hover' },
@@ -206,7 +206,7 @@ export default function StepSummary() {
           sx={{
             border: 1,
             borderColor: 'divider',
-            borderRadius: 2,
+            borderRadius: 0,
             overflow: 'hidden',
           }}
         >
@@ -253,7 +253,7 @@ export default function StepSummary() {
                 sx={{
                   border: 1,
                   borderColor: 'divider',
-                  borderRadius: 1.5,
+                  borderRadius: 0,
                   overflow: 'hidden',
                   mb: 2.5,
                 }}
@@ -300,7 +300,7 @@ export default function StepSummary() {
                 sx={{
                   border: 1,
                   borderColor: 'divider',
-                  borderRadius: 1.5,
+                  borderRadius: 0,
                   overflow: 'hidden',
                 }}
               >
@@ -339,7 +339,7 @@ export default function StepSummary() {
                     <Typography variant="body2" sx={{ textAlign: 'right' }}>
                       {fmt(cat.budgeted)}
                     </Typography>
-                    <Typography variant="body2" sx={{ textAlign: 'right', color: 'primary.main', fontWeight: 600 }}>
+                    <Typography variant="body2" sx={{ textAlign: 'right', color: 'info.main', fontWeight: 600 }}>
                       {fmt(cat.thisBatch)}
                     </Typography>
                     <Typography
@@ -369,7 +369,7 @@ export default function StepSummary() {
                   <Typography variant="body2" fontWeight={700} sx={{ textAlign: 'right' }}>
                     {fmt(totalBudgeted)}
                   </Typography>
-                  <Typography variant="body2" fontWeight={700} sx={{ textAlign: 'right', color: 'primary.main' }}>
+                  <Typography variant="body2" fontWeight={700} sx={{ textAlign: 'right', color: 'info.main' }}>
                     {fmt(totalThisBatch)}
                   </Typography>
                   <Typography variant="body2" fontWeight={700} sx={{ textAlign: 'right' }}>

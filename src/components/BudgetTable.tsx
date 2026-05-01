@@ -39,8 +39,8 @@ function fmtFull(n: number): string {
 
 // === Droppable Line Item Row ===
 // A15-1: Refactored - CO logic moved to AllocationRow level
-function LineItemRow({ lineItem }: { lineItem: BudgetLineItem }) {
-  const { invoices, removeAllocation, updateAllocationAmount, updateAllocationMode, getChangeOrderForAllocation, createChangeOrder, removeChangeOrder, nextCONumber, pendingChangeOrders, getTotalCOAmountForLineItem } = useAllocation();
+function LineItemRow({ lineItem, categoryNumber, categoryName }: { lineItem: BudgetLineItem; categoryNumber: string; categoryName: string }) {
+  const { invoices, removeAllocation, updateAllocationAmount, updateAllocationMode, getChangeOrderForAllocation, createChangeOrder, removeChangeOrder, updateChangeOrder, sessionCONumber, getTotalCOAmountForLineItem } = useAllocation();
   const thisDraw = getLineItemThisDraw(lineItem);
   const available = getLineItemAvailable(lineItem);
   const isOverBudget = available < 0;
@@ -49,11 +49,14 @@ function LineItemRow({ lineItem }: { lineItem: BudgetLineItem }) {
   const totalOverage = available < 0 ? Math.abs(available) : 0;
   const totalCOAmount = getTotalCOAmountForLineItem(lineItem.id);
 
+  // Provisional budget: original + pending CO amounts
+  const provisionalBudgeted = lineItem.budgeted + totalCOAmount;
+  const hasProvisionalBudget = totalCOAmount > 0;
+  // Provisional available: recalculate against provisional budget
+  const provisionalAvailable = provisionalBudgeted - lineItem.priorDraws - thisDraw;
+
   // Overage is covered if total COs >= total overage
   const allOveragesCovered = !isOverBudget || totalCOAmount >= totalOverage;
-
-  // A15-1: Count how many COs exist for this line item
-  const lineItemCOCount = pendingChangeOrders.filter(co => co.lineItemId === lineItem.id).length;
 
   const { setNodeRef, isOver } = useDroppable({
     id: `drop-${lineItem.id}`,
@@ -75,10 +78,10 @@ function LineItemRow({ lineItem }: { lineItem: BudgetLineItem }) {
           px: 2,
           py: 0.75,
           borderBottom: '1px solid',
-          borderColor: isOver ? 'primary.main' : 'grey.200',
-          bgcolor: isOver ? 'primary.lighter' : showErrorState ? 'error.lighter' : 'background.paper',
+          borderColor: isOver ? 'info.main' : 'grey.200',
+          bgcolor: isOver ? 'info.lighter' : showErrorState ? 'error.lighter' : 'background.paper',
           borderLeft: isOver ? '3px solid' : showErrorState ? '3px solid' : '3px solid transparent',
-          borderLeftColor: isOver ? 'primary.main' : showErrorState ? 'error.main' : 'transparent',
+          borderLeftColor: isOver ? 'info.main' : showErrorState ? 'error.main' : 'transparent',
           transition: 'all 0.15s ease',
           '&:hover': {
             bgcolor: showErrorState ? 'error.lighter' : 'grey.50',
@@ -88,38 +91,40 @@ function LineItemRow({ lineItem }: { lineItem: BudgetLineItem }) {
         <Typography variant="body2" color="text.secondary">{lineItem.number}</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 1 }}>
           <Typography variant="body2">{lineItem.description}</Typography>
-          {/* Show adjustment count badge at line level */}
-          {lineItemCOCount > 0 && (
-            <Chip
-              label={lineItemCOCount === 1 ? 'Adjustment Requested' : `${lineItemCOCount} Adjustments`}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: '0.65rem',
-                bgcolor: 'info.lighter',
-                color: 'info.dark',
-              }}
-            />
-          )}
         </Box>
-        <Typography variant="body2" sx={{ textAlign: 'right' }}>{fmt(lineItem.budgeted)}</Typography>
+        <Tooltip
+          title={hasProvisionalBudget ? `Original: ${fmt(lineItem.budgeted)} + ${fmt(totalCOAmount)} adjustment` : ''}
+          arrow
+          disableHoverListener={!hasProvisionalBudget}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              textAlign: 'right',
+              color: hasProvisionalBudget ? 'info.main' : 'text.primary',
+              fontWeight: hasProvisionalBudget ? 600 : 400,
+            }}
+          >
+            {fmt(hasProvisionalBudget ? provisionalBudgeted : lineItem.budgeted)}
+          </Typography>
+        </Tooltip>
         <Typography
           variant="body2"
           sx={{
             textAlign: 'right',
-            color: showErrorState ? 'error.main' : allOveragesCovered && isOverBudget ? 'text.secondary' : 'text.primary',
-            fontWeight: showErrorState ? 700 : 400,
-            fontStyle: allOveragesCovered && isOverBudget ? 'italic' : 'normal',
+            color: showErrorState ? 'error.main' : allOveragesCovered && isOverBudget ? 'info.main' : 'text.primary',
+            fontWeight: showErrorState ? 700 : allOveragesCovered && isOverBudget ? 600 : 400,
+            fontStyle: 'normal',
           }}
         >
-          {fmt(available)}
+          {fmt(hasProvisionalBudget ? provisionalAvailable : available)}
         </Typography>
         <Typography
           variant="body2"
           sx={{
             textAlign: 'right',
             fontWeight: thisDraw > 0 ? 700 : 400,
-            color: thisDraw > 0 ? 'primary.main' : 'text.secondary',
+            color: thisDraw > 0 ? 'info.main' : 'text.secondary',
             pr: 0.5,
           }}
         >
@@ -139,7 +144,10 @@ function LineItemRow({ lineItem }: { lineItem: BudgetLineItem }) {
             key={alloc.id}
             allocation={alloc}
             lineItemId={lineItem.id}
+            lineItemNumber={lineItem.number}
             lineItemDescription={lineItem.description}
+            categoryNumber={categoryNumber}
+            categoryName={categoryName}
             invoiceAmount={invoiceAmount}
             isLineOverBudget={isOverBudget}
             lineItemBudgeted={lineItem.budgeted}
@@ -151,7 +159,8 @@ function LineItemRow({ lineItem }: { lineItem: BudgetLineItem }) {
             pendingCO={allocCO}
             onCreateCO={createChangeOrder}
             onRemoveCO={removeChangeOrder}
-            nextCONumber={nextCONumber}
+            onUpdateCO={updateChangeOrder}
+            sessionCONumber={sessionCONumber}
             totalCOAmountForLineItem={getTotalCOAmountForLineItem(lineItem.id)}
           />
         );
@@ -167,7 +176,10 @@ function LineItemRow({ lineItem }: { lineItem: BudgetLineItem }) {
 function AllocationRow({
   allocation,
   lineItemId,
+  lineItemNumber,
   lineItemDescription,
+  categoryNumber,
+  categoryName,
   invoiceAmount,
   isLineOverBudget,
   lineItemBudgeted,
@@ -179,12 +191,16 @@ function AllocationRow({
   pendingCO,
   onCreateCO,
   onRemoveCO,
-  nextCONumber: _nextCONumber,
+  onUpdateCO,
+  sessionCONumber,
   totalCOAmountForLineItem,
 }: {
   allocation: Allocation;
   lineItemId: string;
+  lineItemNumber: string;
   lineItemDescription: string;
+  categoryNumber: string;
+  categoryName: string;
   invoiceAmount: number;
   isLineOverBudget: boolean;
   lineItemBudgeted: number;
@@ -196,7 +212,8 @@ function AllocationRow({
   pendingCO?: PendingChangeOrder;
   onCreateCO: (lineItemId: string, invoiceId: string, vendorName: string, invoiceNumber: string, amount: number, reason: string) => void;
   onRemoveCO: (coId: string) => void;
-  nextCONumber: string;
+  onUpdateCO: (coId: string, amount: number, reason: string) => void;
+  sessionCONumber: string;
   totalCOAmountForLineItem: number;
 }) {
   const [editing, setEditing] = useState(false);
@@ -210,6 +227,7 @@ function AllocationRow({
   const [coModalOpen, setCOModalOpen] = useState(false);
   const [coAmount, setCOAmount] = useState('');
   const [coReason, setCOReason] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const computedPct = invoiceAmount > 0
     ? Math.round((allocation.amount / invoiceAmount) * 100 * 100) / 100
@@ -230,21 +248,36 @@ function AllocationRow({
     // Pre-fill with remaining uncovered overage, not total overage
     setCOAmount(uncoveredOverage.toFixed(2));
     setCOReason('');
+    setIsEditMode(false);
     setCOModalOpen(true);
   };
 
-  const handleCreateCO = () => {
+  const handleEditCO = () => {
+    if (pendingCO) {
+      setCOAmount(pendingCO.amount.toFixed(2));
+      setCOReason(pendingCO.reason);
+      setIsEditMode(true);
+      setCOModalOpen(true);
+    }
+  };
+
+  const handleSaveCO = () => {
     const amount = parseFloat(coAmount);
     if (!isNaN(amount) && amount > 0 && coReason.trim()) {
-      onCreateCO(
-        lineItemId,
-        allocation.invoiceId,
-        allocation.vendorName,
-        allocation.invoiceNumber,
-        amount,
-        coReason.trim()
-      );
+      if (isEditMode && pendingCO) {
+        onUpdateCO(pendingCO.id, amount, coReason.trim());
+      } else {
+        onCreateCO(
+          lineItemId,
+          allocation.invoiceId,
+          allocation.vendorName,
+          allocation.invoiceNumber,
+          amount,
+          coReason.trim()
+        );
+      }
       setCOModalOpen(false);
+      setIsEditMode(false);
     }
   };
 
@@ -305,7 +338,7 @@ function AllocationRow({
           alignItems: 'center',
           px: 2,
           py: 0.5,
-          bgcolor: needsCO ? 'warning.lighter' : 'primary.lighter',
+          bgcolor: needsCO ? 'warning.lighter' : 'info.lighter',
           borderBottom: '1px solid',
           borderColor: needsCO ? 'warning.light' : 'grey.100',
           borderLeft: needsCO ? '3px solid' : 'none',
@@ -319,56 +352,71 @@ function AllocationRow({
       >
         <Box />
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 2 }}>
-          <Typography variant="caption" sx={{ color: needsCO ? 'warning.dark' : 'primary.main' }}>↳</Typography>
+          <Typography variant="caption" sx={{ color: needsCO ? 'warning.dark' : 'info.main' }}>↳</Typography>
           <Typography variant="caption" sx={{ fontWeight: 600 }} noWrap>
             {allocation.vendorName}
           </Typography>
           <Chip
             label={allocation.invoiceNumber}
             size="small"
-            sx={{ height: 20, fontSize: '0.7rem', bgcolor: needsCO ? 'warning.lighter' : 'primary.lighter', color: needsCO ? 'warning.dark' : 'primary.dark', flexShrink: 0 }}
+            sx={{ height: 20, fontSize: '0.7rem', bgcolor: needsCO ? 'warning.lighter' : 'info.lighter', color: needsCO ? 'warning.dark' : 'info.dark', flexShrink: 0 }}
           />
 
-          {/* Show adjustment chip with delete for this specific allocation */}
+          {/* Show adjustment chip with amount (static display) + separate Edit action */}
           {hasCO && pendingCO && (
-            <Chip
-              label="Adjustment Requested"
-              size="small"
-              onDelete={() => onRemoveCO(pendingCO.id)}
-              sx={{
-                height: 18,
-                fontSize: '0.6rem',
-                fontWeight: 700,
-                bgcolor: 'info.lighter',
-                color: 'info.dark',
-                flexShrink: 0,
-                ml: -0.25,
-                '& .MuiChip-deleteIcon': {
-                  fontSize: 14,
-                  color: 'info.main',
-                  '&:hover': { color: 'info.dark' },
-                },
-              }}
-            />
+            <>
+              <Chip
+                label={`+${fmtFull(pendingCO.amount)} Requested`}
+                size="small"
+                onDelete={() => onRemoveCO(pendingCO.id)}
+                sx={{
+                  height: 20,
+                  fontSize: '0.65rem',
+                  fontWeight: 600,
+                  bgcolor: 'info.lighter',
+                  color: 'info.dark',
+                  flexShrink: 0,
+                  ml: -0.25,
+                  '& .MuiChip-deleteIcon': {
+                    fontSize: 14,
+                    color: 'info.main',
+                    '&:hover': { color: 'info.dark' },
+                  },
+                }}
+              />
+              <Link
+                component="button"
+                variant="caption"
+                onClick={handleEditCO}
+                sx={{
+                  fontSize: '0.7rem',
+                  fontWeight: 600,
+                  color: 'info.dark',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  '&:hover': { color: 'info.main' },
+                }}
+              >
+                Edit
+              </Link>
+            </>
           )}
 
-          {/* Over Budget indicator + explicit Request Adjustment link */}
+          {/* Over Budget status indicator (non-clickable) + action link */}
           {needsCO && (
             <>
               <Chip
                 icon={<ErrorOutlineIcon sx={{ fontSize: '14px !important' }} />}
                 label="Over Budget"
                 size="small"
-                onClick={handleOpenCOModal}
                 sx={{
                   height: 20,
                   fontSize: '0.65rem',
                   fontWeight: 600,
                   bgcolor: 'warning.main',
                   color: 'warning.contrastText',
-                  cursor: 'pointer',
                   flexShrink: 0,
-                  '&:hover': { bgcolor: 'warning.dark' },
                   '& .MuiChip-icon': { color: 'warning.contrastText' },
                 }}
               />
@@ -412,8 +460,8 @@ function AllocationRow({
                   display: 'flex',
                   alignItems: 'center',
                   border: '1px solid',
-                  borderColor: 'primary.main',
-                  borderRadius: 1,
+                  borderColor: 'info.main',
+                  borderRadius: 0,
                   bgcolor: 'background.paper',
                   overflow: 'hidden',
                   width: 150,
@@ -441,7 +489,7 @@ function AllocationRow({
                       pl: 0,
                       fontSize: '0.8125rem',
                       fontWeight: 700,
-                      color: 'primary.main',
+                      color: 'info.main',
                     },
                     '& .MuiSelect-icon': {
                       fontSize: 16,
@@ -491,7 +539,7 @@ function AllocationRow({
                   alignItems: 'baseline',
                   gap: 0.75,
                   cursor: 'pointer',
-                  borderRadius: 0.5,
+                  borderRadius: 0,
                   px: 0.5,
                   py: 0.25,
                   mx: -0.5,
@@ -504,7 +552,7 @@ function AllocationRow({
                   variant="body2"
                   sx={{
                     fontWeight: 600,
-                    color: needsCO ? 'warning.dark' : 'primary.main',
+                    color: needsCO ? 'warning.dark' : 'info.main',
                   }}
                 >
                   {fmtFull(allocation.amount)}
@@ -534,28 +582,70 @@ function AllocationRow({
       {/* Per-Invoice Budget Adjustment Modal */}
       <Dialog
         open={coModalOpen}
-        onClose={() => setCOModalOpen(false)}
+        onClose={() => { setCOModalOpen(false); setIsEditMode(false); }}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 2 } }}
+        PaperProps={{ sx: { borderRadius: 0 } }}
       >
-        <DialogTitle sx={{ pb: 1, fontWeight: 700 }}>
-          Request Budget Adjustment
+        <DialogTitle sx={{ pb: 1, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
+          {isEditMode ? 'Edit Budget Adjustment' : 'Request Budget Adjustment'}
+          <Typography
+            component="span"
+            variant="body2"
+            sx={{
+              px: 1,
+              py: 0.25,
+              borderRadius: 0,
+              bgcolor: 'grey.100',
+              color: 'text.secondary',
+              fontWeight: 600,
+              fontSize: '0.75rem',
+            }}
+          >
+            {sessionCONumber}
+          </Typography>
         </DialogTitle>
-        <Box sx={{ px: 3, pb: 1 }}>
-          <Typography variant="body2" color="text.secondary">
-            For invoice <strong>{allocation.invoiceNumber}</strong> ({allocation.vendorName})
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Budget line: {lineItemDescription}
-          </Typography>
+        <Box sx={{ px: 3, pb: 1, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1.5 }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.05em' }}>
+              Invoice
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {allocation.invoiceNumber}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {allocation.vendorName}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.05em' }}>
+              Budget Category
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {categoryNumber}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {categoryName}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.05em' }}>
+              Budget Line Item
+            </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+              {lineItemNumber}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {lineItemDescription}
+            </Typography>
+          </Box>
         </Box>
         <DialogContent>
           {/* Summary box */}
           <Box
             sx={{
               bgcolor: 'grey.50',
-              borderRadius: 1,
+              borderRadius: 0,
               p: 1.5,
               mb: 2,
               border: '1px solid',
@@ -614,16 +704,16 @@ function AllocationRow({
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setCOModalOpen(false)} sx={{ textTransform: 'none' }}>
+          <Button onClick={() => { setCOModalOpen(false); setIsEditMode(false); }} sx={{ textTransform: 'none' }}>
             Cancel
           </Button>
           <Button
             variant="contained"
-            onClick={handleCreateCO}
+            onClick={handleSaveCO}
             disabled={!coReason.trim() || !coAmount}
             sx={{ textTransform: 'none' }}
           >
-            Request Adjustment
+            {isEditMode ? 'Save Changes' : 'Request Adjustment'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -633,11 +723,17 @@ function AllocationRow({
 
 // === Category Group ===
 function CategoryGroup({ category }: { category: BudgetCategory }) {
-  const { toggleCategory } = useAllocation();
+  const { toggleCategory, getTotalCOAmountForLineItem } = useAllocation();
   const catThisDraw = category.lineItems.reduce(
     (sum, li) => sum + getLineItemThisDraw(li),
     0
   );
+  // Provisional category sums
+  const catTotalCO = category.lineItems.reduce(
+    (sum, li) => sum + getTotalCOAmountForLineItem(li.id),
+    0
+  );
+  const catHasProvisional = catTotalCO > 0;
 
   return (
     <>
@@ -668,18 +764,18 @@ function CategoryGroup({ category }: { category: BudgetCategory }) {
         <Typography variant="subtitle2" sx={{ color: 'text.primary' }}>
           {category.number} {category.name}
         </Typography>
-        <Typography variant="body2" sx={{ textAlign: 'right', fontWeight: 600 }}>
-          {fmt(category.lineItems.reduce((s, li) => s + li.budgeted, 0))}
+        <Typography variant="body2" sx={{ textAlign: 'right', fontWeight: 600, color: catHasProvisional ? 'info.main' : 'text.primary' }}>
+          {fmt(category.lineItems.reduce((s, li) => s + li.budgeted, 0) + catTotalCO)}
         </Typography>
-        <Typography variant="body2" sx={{ textAlign: 'right', fontWeight: 600 }}>
-          {fmt(category.lineItems.reduce((s, li) => s + getLineItemAvailable(li), 0))}
+        <Typography variant="body2" sx={{ textAlign: 'right', fontWeight: 600, color: catHasProvisional ? 'info.main' : 'text.primary' }}>
+          {fmt(category.lineItems.reduce((s, li) => s + li.budgeted + getTotalCOAmountForLineItem(li.id) - li.priorDraws - getLineItemThisDraw(li), 0))}
         </Typography>
         <Typography
           variant="body2"
           sx={{
             textAlign: 'right',
             fontWeight: 600,
-            color: catThisDraw > 0 ? 'primary.main' : 'text.secondary',
+            color: catThisDraw > 0 ? 'info.main' : 'text.secondary',
             pr: 0.5,
           }}
         >
@@ -690,25 +786,127 @@ function CategoryGroup({ category }: { category: BudgetCategory }) {
       {/* Line Items (collapsible) */}
       <Collapse in={category.expanded}>
         {category.lineItems.map(li => (
-          <LineItemRow key={li.id} lineItem={li} />
+          <LineItemRow key={li.id} lineItem={li} categoryNumber={category.number} categoryName={category.name} />
         ))}
       </Collapse>
     </>
   );
 }
 
+// === Fee configuration for this project (read-only display) ===
+const PROJECT_FEES = [
+  { id: 'fee-contractor', description: "Contractor's Fee", type: 'percentage' as const, rate: 10, displayType: '10%' },
+  { id: 'fee-lw', description: 'LedgerWise Trust Account Fee', type: 'percentage' as const, rate: 1.5, displayType: '1.5%' },
+];
+
+// === Expandable Fee Summary Footer ===
+function FeeSummaryFooter({ subtotal }: { subtotal: number }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const fees = PROJECT_FEES.map(fee => ({
+    ...fee,
+    amount: Math.round(subtotal * (fee.rate / 100) * 100) / 100,
+  }));
+  const totalFees = fees.reduce((s, f) => s + f.amount, 0);
+  const grandTotal = subtotal + totalFees;
+
+  return (
+    <Box sx={{ flexShrink: 0 }}>
+      {/* Clickable trigger row */}
+      <Box
+        onClick={() => setExpanded(!expanded)}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 2,
+          py: 1,
+          bgcolor: 'grey.100',
+          borderTop: '2px solid',
+          borderColor: 'grey.400',
+          cursor: 'pointer',
+          '&:hover': { bgcolor: 'grey.200' },
+          userSelect: 'none',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          {expanded ? (
+            <ExpandMoreIcon fontSize="small" sx={{ color: 'grey.600' }} />
+          ) : (
+            <ChevronRightIcon fontSize="small" sx={{ color: 'grey.600' }} />
+          )}
+          <Typography variant="subtitle2" fontWeight={700}>
+            Total Construction Cost
+          </Typography>
+          {!expanded && fees.length > 0 && (
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+              (incl. {fees.length} fee{fees.length !== 1 ? 's' : ''})
+            </Typography>
+          )}
+        </Box>
+        <Typography variant="subtitle2" fontWeight={700}>
+          {fmt(grandTotal)}
+        </Typography>
+      </Box>
+
+      {/* Expanded detail */}
+      <Collapse in={expanded} unmountOnExit>
+        <Box sx={{ px: 3, py: 2, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'grey.200' }}>
+          {/* Subtotal */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+            <Typography variant="body2" color="text.secondary">Subtotal (Cost of Work)</Typography>
+            <Typography variant="body2">{fmt(subtotal)}</Typography>
+          </Box>
+
+          {/* Dashed divider */}
+          <Box sx={{ borderTop: '1px dashed', borderColor: 'grey.300', mb: 1.5 }} />
+
+          {/* Fees header */}
+          <Typography variant="overline" color="text.secondary" sx={{ fontSize: '0.65rem', mb: 1, display: 'block' }}>
+            FEES
+          </Typography>
+
+          {/* Fee lines */}
+          {fees.map(fee => (
+            <Box key={fee.id} sx={{ display: 'flex', justifyContent: 'space-between', pl: 2, mb: 0.75 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2">{fee.description}</Typography>
+                <Typography variant="caption" color="text.secondary">({fee.displayType})</Typography>
+              </Box>
+              <Typography variant="body2">{fmt(fee.amount)}</Typography>
+            </Box>
+          ))}
+
+          {/* Fees total */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, mt: 0.5, borderTop: '1px solid', borderColor: 'grey.200' }}>
+            <Typography variant="body2" fontWeight={600}>Fees Total</Typography>
+            <Typography variant="body2" fontWeight={600}>{fmt(totalFees)}</Typography>
+          </Box>
+
+          {/* Grand total */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1, mt: 1, borderTop: '2px solid', borderColor: 'grey.400' }}>
+            <Typography variant="subtitle2" fontWeight={700}>Grand Total</Typography>
+            <Typography variant="subtitle2" fontWeight={700}>{fmt(grandTotal)}</Typography>
+          </Box>
+        </Box>
+      </Collapse>
+    </Box>
+  );
+}
+
 // === Main Budget Table ===
 export default function BudgetTable() {
-  const { categories, totalThisDraw, totalBudgeted, totalAvailable } = useAllocation();
+  const { categories, totalThisDraw, totalBudgeted, totalAvailable, pendingChangeOrders } = useAllocation();
+
+  // Check if any provisional budgets exist
+  const hasAnyProvisional = pendingChangeOrders.length > 0;
 
   return (
     <Box
       sx={{
-        flex: '1 1 60%',
+        flex: 1,
         display: 'flex',
         flexDirection: 'column',
-        borderLeft: '1px solid',
-        borderColor: 'grey.200',
         height: '100%',
         overflow: 'hidden',
       }}
@@ -730,7 +928,7 @@ export default function BudgetTable() {
         <Typography variant="subtitle1" fontWeight={700}>
           Budget Allocation
         </Typography>
-        <Typography variant="subtitle1" sx={{ color: 'primary.main', fontWeight: 700 }}>
+        <Typography variant="subtitle1" sx={{ color: 'info.main', fontWeight: 700 }}>
           {fmtFull(totalThisDraw)}
         </Typography>
       </Box>
@@ -778,20 +976,23 @@ export default function BudgetTable() {
         }}
       >
         <Box />
-        <Typography variant="subtitle2">TOTAL</Typography>
-        <Typography variant="subtitle2" sx={{ textAlign: 'right' }}>
+        <Typography variant="subtitle2">SUBTOTAL</Typography>
+        <Typography variant="subtitle2" sx={{ textAlign: 'right', color: hasAnyProvisional ? 'info.main' : 'text.primary' }}>
           {fmt(totalBudgeted)}
         </Typography>
-        <Typography variant="subtitle2" sx={{ textAlign: 'right' }}>
+        <Typography variant="subtitle2" sx={{ textAlign: 'right', color: hasAnyProvisional ? 'info.main' : 'text.primary' }}>
           {fmt(totalAvailable)}
         </Typography>
         <Typography
           variant="subtitle2"
-          sx={{ textAlign: 'right', color: 'primary.main', pr: 0.5 }}
+          sx={{ textAlign: 'right', color: 'info.main', pr: 0.5 }}
         >
           {fmtFull(totalThisDraw)}
         </Typography>
       </Box>
+
+      {/* Expandable Fee Summary Footer */}
+      <FeeSummaryFooter subtotal={totalBudgeted} />
     </Box>
   );
 }

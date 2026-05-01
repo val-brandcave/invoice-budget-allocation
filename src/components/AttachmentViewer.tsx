@@ -96,7 +96,7 @@ export default function AttachmentViewer({
           justifyContent: 'center',
           p: 4,
           bgcolor: 'grey.50',
-          borderRadius: 1,
+          borderRadius: 0,
         }}
       >
         <AttachFileIcon sx={{ fontSize: 40, color: 'grey.300', mb: 1 }} />
@@ -115,7 +115,7 @@ export default function AttachmentViewer({
         display: 'flex',
         flexDirection: 'column',
         bgcolor: 'background.paper',
-        borderRadius: 1,
+        borderRadius: 0,
         border: '1px solid',
         borderColor: 'grey.200',
         boxShadow: 1,

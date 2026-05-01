@@ -95,11 +95,11 @@ export default function EditInvoicesModal({ open, onClose }: EditInvoicesModalPr
       maxWidth="sm"
       fullWidth
       PaperProps={{
-        sx: { borderRadius: 2 },
+        sx: { borderRadius: 0 },
       }}
     >
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, fontWeight: 700 }}>
-        Edit Invoices
+        Select Invoices
         <IconButton size="small" onClick={onClose} sx={{ ml: 'auto' }}>
           <CloseIcon fontSize="small" />
         </IconButton>
@@ -192,10 +192,10 @@ function InvoiceRow({
         gap: 1.5,
         px: 1,
         py: 1,
-        borderRadius: 1,
+        borderRadius: 0,
         cursor: 'pointer',
-        bgcolor: isSelected ? 'primary.lighter' : 'transparent',
-        '&:hover': { bgcolor: isSelected ? 'primary.lighter' : 'grey.50' },
+        bgcolor: isSelected ? 'info.lighter' : 'transparent',
+        '&:hover': { bgcolor: isSelected ? 'info.lighter' : 'grey.50' },
         transition: 'background-color 0.15s',
       }}
     >

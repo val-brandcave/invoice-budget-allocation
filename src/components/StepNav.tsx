@@ -131,9 +131,9 @@ export default function StepNav() {
               gap: 1.25,
               px: 1.25,
               py: 1,
-              borderRadius: 1.5,
+              borderRadius: 0,
               cursor: isCompleted ? 'pointer' : 'default',
-              bgcolor: isActive ? 'primary.lighter' : 'transparent',
+              bgcolor: isActive ? 'info.lighter' : 'transparent',
               opacity: isLocked ? 0.4 : 1,
               transition: 'all 0.2s',
               '&:hover': isCompleted ? { bgcolor: 'grey.100' } : {},
@@ -141,7 +141,7 @@ export default function StepNav() {
           >
             <Box
               sx={{
-                color: isActive ? 'primary.main' : isCompleted ? 'text.secondary' : 'grey.400',
+                color: isActive ? 'info.main' : isCompleted ? 'text.secondary' : 'grey.400',
                 display: 'flex',
                 alignItems: 'center',
                 flexShrink: 0,

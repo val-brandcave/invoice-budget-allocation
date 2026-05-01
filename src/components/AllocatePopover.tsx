@@ -96,7 +96,7 @@ function AllocateContent({
       {/* Header */}
       <Box sx={{ px: 2, py: isMobile ? 2 : 1.5, borderBottom: '1px solid', borderColor: 'grey.200' }}>
         {isMobile && (
-          <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: 'grey.300', mx: 'auto', mb: 1.5 }} />
+          <Box sx={{ width: 36, height: 4, borderRadius: 0, bgcolor: 'grey.300', mx: 'auto', mb: 1.5 }} />
         )}
         <Typography variant={isMobile ? 'h6' : 'subtitle2'} fontWeight={700}>
           Allocate to Budget Line
@@ -177,7 +177,7 @@ function AllocateContent({
                         pl: 4,
                         py: isMobile ? 1.25 : 0.5,
                         minHeight: isMobile ? 48 : undefined,
-                        '&:hover': { bgcolor: 'primary.lighter' },
+                        '&:hover': { bgcolor: 'info.lighter' },
                       }}
                     >
                       <ListItemText
@@ -229,10 +229,10 @@ function AllocateContent({
                               py: 0.125,
                             }}
                           >
-                            <Box component="span" sx={{ color: 'primary.main' }}>↳</Box>
+                            <Box component="span" sx={{ color: 'info.main' }}>↳</Box>
                             {a.vendorName}
                             <Box component="span" sx={{ color: 'grey.400' }}>·</Box>
-                            <Box component="span" sx={{ color: 'primary.main' }}>
+                            <Box component="span" sx={{ color: 'info.main' }}>
                               {fmtFull(a.amount)}
                             </Box>
                           </Typography>

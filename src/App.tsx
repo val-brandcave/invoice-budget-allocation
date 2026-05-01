@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Box,
   CssBaseline,
@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import Chip from '@mui/material/Chip';
 import {
   DndContext,
@@ -30,12 +31,38 @@ import StepFooter from './components/StepFooter';
 import BudgetTable from './components/BudgetTable';
 import InvoicePanel from './components/InvoicePanel';
 import DragOverlayCard from './components/DragOverlayCard';
+import COSummaryModal from './components/COSummaryModal';
 import { getInvoiceAllocatedAmount } from './types';
 import type { DragData } from './types';
 
 function AllocateStepDesktop() {
   const { categories, invoices, addAllocation } = useAllocation();
   const [activeDrag, setActiveDrag] = useState<DragData | null>(null);
+  const [splitPct, setSplitPct] = useState(35);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    const onMove = (ev: MouseEvent) => {
+      if (!draggingRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
+      setSplitPct(Math.min(60, Math.max(20, pct)));
+    };
+    const onUp = () => {
+      draggingRef.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -85,9 +112,25 @@ function AllocateStepDesktop() {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        <InvoicePanel />
-        <BudgetTable />
+      <Box ref={containerRef} sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+        <Box sx={{ width: `${splitPct}%`, minWidth: 0, flexShrink: 0, display: 'flex' }}>
+          <InvoicePanel />
+        </Box>
+        <Box
+          onMouseDown={handleResizeStart}
+          sx={{
+            width: 4,
+            flexShrink: 0,
+            cursor: 'col-resize',
+            bgcolor: 'grey.300',
+            transition: 'background-color 0.15s',
+            '&:hover': { bgcolor: 'primary.main' },
+            zIndex: 10,
+          }}
+        />
+        <Box sx={{ flex: 1, minWidth: 0, display: 'flex' }}>
+          <BudgetTable />
+        </Box>
       </Box>
 
       <DragOverlay dropAnimation={null}>
@@ -100,10 +143,11 @@ function AllocateStepDesktop() {
 // Single-step flow - directly show allocation view
 
 function CompletionModal() {
-  const { showCompletionModal, setShowCompletionModal, selectedPRId, draftPRs, selectedTotal, selectedInvoices } = useAllocation();
+  const { showCompletionModal, setShowCompletionModal, selectedPRId, draftPRs, selectedTotal, selectedInvoices, pendingChangeOrders, sessionCONumber } = useAllocation();
 
   const selectedPR = draftPRs.find(pr => pr.id === selectedPRId);
   const prLabel = selectedPR ? selectedPR.prNumber : 'New Payment Request';
+  const hasCOs = pendingChangeOrders.length > 0;
 
   const fmtCurrency = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 });
 
@@ -119,7 +163,7 @@ function CompletionModal() {
           maxWidth: 420,
           mx: 2,
           p: 3,
-          borderRadius: 2,
+          borderRadius: 0,
           outline: 'none',
         }}
       >
@@ -131,9 +175,25 @@ function CompletionModal() {
           <Typography variant="body2" color="text.secondary" textAlign="center">
             {selectedInvoices.length} invoice{selectedInvoices.length !== 1 ? 's' : ''} ({fmtCurrency(selectedTotal)}) added to <strong>{prLabel}</strong>
           </Typography>
+
+          {hasCOs && (
+            <Box
+              sx={{
+                width: '100%',
+                p: 1.5,
+                borderRadius: 0,
+                bgcolor: 'info.lighter',
+                border: '1px solid',
+                borderColor: 'info.light',
+              }}
+            >
+              <Typography variant="body2" color="info.dark" textAlign="center">
+                Budget adjustment <strong>{sessionCONumber}</strong> ({pendingChangeOrders.length} item{pendingChangeOrders.length !== 1 ? 's' : ''}) submitted for homeowner review.
+              </Typography>
+            </Box>
+          )}
         </Stack>
 
-        {/* P9: Updated button text — "Done" instead of "Close" */}
         <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>
           <Button
             fullWidth
@@ -158,9 +218,27 @@ function CompletionModal() {
 }
 
 function DesktopLayout() {
-  const { goNext, canProceed, selectedPRId, draftPRs } = useAllocation();
+  const {
+    goNext,
+    canProceed,
+    selectedPRId,
+    draftPRs,
+    allInvoicesAllocated,
+    allAdjustmentsResolved,
+    unresolvedAdjustmentCount,
+    pendingChangeOrders,
+  } = useAllocation();
 
   const selectedPR = draftPRs.find(pr => pr.id === selectedPRId);
+
+  // Determine footer warning message
+  let warningMessage = '';
+  if (allInvoicesAllocated && !allAdjustmentsResolved) {
+    warningMessage = `${unresolvedAdjustmentCount} over-budget line${unresolvedAdjustmentCount !== 1 ? 's' : ''} need${unresolvedAdjustmentCount === 1 ? 's' : ''} adjustment`;
+  }
+
+  // Info message for resolved COs
+  const hasPendingCOs = pendingChangeOrders.length > 0 && allAdjustmentsResolved;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', bgcolor: 'grey.100' }}>
@@ -191,8 +269,8 @@ function DesktopLayout() {
                 height: 22,
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                bgcolor: 'primary.lighter',
-                color: 'primary.main',
+                bgcolor: 'info.lighter',
+                color: 'info.main',
               }}
             />
           )}
@@ -207,10 +285,9 @@ function DesktopLayout() {
         <AllocateStepDesktop />
       </Box>
 
-      {/* ── Full-width footer (single-step: just submit button) ── */}
+      {/* ── Full-width footer ── */}
       <Box
         sx={{
-          height: 52,
           minHeight: 52,
           borderTop: '1px solid',
           borderColor: 'grey.200',
@@ -219,9 +296,28 @@ function DesktopLayout() {
           alignItems: 'center',
           justifyContent: 'flex-end',
           px: 2.5,
+          py: 0.75,
           flexShrink: 0,
+          gap: 2,
         }}
       >
+        {/* Warning: unresolved overages */}
+        {warningMessage && (
+          <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mr: 'auto' }}>
+            <WarningAmberIcon sx={{ fontSize: 18, color: 'warning.main' }} />
+            <Typography variant="body2" color="warning.dark" fontWeight={500}>
+              {warningMessage}
+            </Typography>
+          </Stack>
+        )}
+
+        {/* Info: resolved COs count */}
+        {hasPendingCOs && !warningMessage && (
+          <Typography variant="body2" color="text.secondary" sx={{ mr: 'auto' }}>
+            {pendingChangeOrders.length} budget adjustment{pendingChangeOrders.length !== 1 ? 's' : ''} pending
+          </Typography>
+        )}
+
         <Box
           component="button"
           onClick={goNext}
@@ -231,7 +327,7 @@ function DesktopLayout() {
             alignItems: 'center',
             gap: 0.5,
             border: 'none',
-            borderRadius: 1,
+            borderRadius: 0,
             bgcolor: 'success.main',
             color: '#fff',
             px: 2,
@@ -249,6 +345,9 @@ function DesktopLayout() {
         </Box>
       </Box>
 
+      {/* CO Summary Modal (shown before completion if COs exist) */}
+      <COSummaryModal />
+
       {/* Completion Modal */}
       <CompletionModal />
     </Box>
@@ -262,6 +361,7 @@ function MobileLayout() {
         <InvoicePanel isMobile />
       </Box>
       <StepFooter />
+      <COSummaryModal />
       <CompletionModal />
     </Box>
   );

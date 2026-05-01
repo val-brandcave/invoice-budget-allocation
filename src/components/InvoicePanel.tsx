@@ -190,7 +190,7 @@ function DraggableInvoiceCard({
     return (
       <Box
         sx={{
-          borderRadius: 2,
+          borderRadius: 0,
           border: '1px solid',
           borderColor: 'success.light',
           bgcolor: 'success.lighter',
@@ -245,9 +245,9 @@ function DraggableInvoiceCard({
   return (
     <Box
       sx={{
-        borderRadius: 2,
+        borderRadius: 0,
         border: '1px solid',
-        borderColor: isFullyAllocated ? 'success.light' : isDragging ? 'primary.main' : 'grey.200',
+        borderColor: isFullyAllocated ? 'success.light' : isDragging ? 'info.main' : 'grey.200',
         bgcolor: isFullyAllocated ? 'success.lighter' : 'background.paper',
         overflow: 'hidden',
         boxShadow: isDragging ? '0 0 0 2px rgba(25, 57, 183, 0.15)' : 0,
@@ -255,7 +255,7 @@ function DraggableInvoiceCard({
         flexShrink: 0,
         // CO status: left border accent
         borderLeft: hasAnyOverBudget ? '3px solid' : '1px solid',
-        borderLeftColor: hasAnyOverBudget ? getLeftBorderColor() : (isFullyAllocated ? 'success.light' : isDragging ? 'primary.main' : 'grey.200'),
+        borderLeftColor: hasAnyOverBudget ? getLeftBorderColor() : (isFullyAllocated ? 'success.light' : isDragging ? 'info.main' : 'grey.200'),
       }}
     >
       {/* ── HEADER ROW with drag handle + action icons (P3, P4) ── */}
@@ -267,9 +267,9 @@ function DraggableInvoiceCard({
           px: 1.5,
           py: 0.5,
           minHeight: isMobile ? 44 : 40,
-          bgcolor: isDragging ? 'primary.lighter' : isFullyAllocated ? 'success.lighter' : 'grey.50',
+          bgcolor: isDragging ? 'info.lighter' : isFullyAllocated ? 'success.lighter' : 'grey.50',
           borderBottom: '1px solid',
-          borderColor: isDragging ? 'primary.light' : 'grey.100',
+          borderColor: isDragging ? 'info.light' : 'grey.100',
         }}
       >
         {/* Drag handle area with tooltip (P4) */}
@@ -287,8 +287,8 @@ function DraggableInvoiceCard({
               '&:active': isMobile || isFullyAllocated ? {} : { cursor: 'grabbing' },
               opacity: isDragging ? 0.4 : 1,
               py: 0.25,
-              borderRadius: 1,
-              '&:hover': isMobile || isFullyAllocated ? {} : { bgcolor: 'primary.lighter' },
+              borderRadius: 0,
+              '&:hover': isMobile || isFullyAllocated ? {} : { bgcolor: 'info.lighter' },
               transition: 'background-color 0.15s, opacity 0.15s',
             }}
           >
@@ -353,9 +353,9 @@ function DraggableInvoiceCard({
                   size="small"
                   onClick={(e) => { e.stopPropagation(); setPopoverAnchor(e.currentTarget); }}
                   sx={{
-                    color: 'primary.main',
+                    color: 'info.main',
                     p: 0.5,
-                    '&:hover': { bgcolor: 'primary.lighter' },
+                    '&:hover': { bgcolor: 'info.lighter' },
                   }}
                 >
                   <AddIcon sx={{ fontSize: 18 }} />
@@ -439,7 +439,7 @@ function DraggableInvoiceCard({
               {!isFullyAllocated && remaining > 0 && (
                 <MenuItem onClick={(e) => { setMobileMenuAnchor(null); setPopoverAnchor(e.currentTarget as HTMLElement); }}>
                   <ListItemIcon>
-                    <AddIcon fontSize="small" sx={{ color: 'primary.main' }} />
+                    <AddIcon fontSize="small" sx={{ color: 'info.main' }} />
                   </ListItemIcon>
                   <ListItemText>Allocate to budget</ListItemText>
                 </MenuItem>
@@ -515,11 +515,11 @@ function DraggableInvoiceCard({
             sx={{
               flex: 1,
               height: isMobile ? 8 : 6,
-              borderRadius: 3,
+              borderRadius: 0,
               bgcolor: 'grey.200',
               '& .MuiLinearProgress-bar': {
-                borderRadius: 3,
-                bgcolor: progress === 100 ? 'success.main' : 'primary.main',
+                borderRadius: 0,
+                bgcolor: progress === 100 ? 'success.main' : 'info.main',
               },
             }}
           />
@@ -531,7 +531,7 @@ function DraggableInvoiceCard({
         {/* Allocated / Remaining breakdown */}
         {allocated > 0 && remaining > 0 && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
-            <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
+            <Typography variant="caption" color="info.main" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
               {fmtFull(allocated)} allocated
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>·</Typography>
@@ -629,7 +629,7 @@ export default function InvoicePanel({ isMobile = false }: { isMobile?: boolean 
           </Box>
 
           {totalThisDraw > 0 && (
-            <Typography variant="caption" color="primary.main" fontWeight={600} sx={{ mt: 0.5, display: 'block' }}>
+            <Typography variant="caption" color="info.main" fontWeight={600} sx={{ mt: 0.5, display: 'block' }}>
               This Request: {fmtFull(totalThisDraw)}
             </Typography>
           )}
@@ -676,7 +676,7 @@ export default function InvoicePanel({ isMobile = false }: { isMobile?: boolean 
           }}
         >
           <Box sx={{ px: 2, pt: 1, pb: 0.5, flexShrink: 0 }}>
-            <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: 'grey.300', mx: 'auto', mb: 1 }} />
+            <Box sx={{ width: 36, height: 4, borderRadius: 0, bgcolor: 'grey.300', mx: 'auto', mb: 1 }} />
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
                 <Typography variant="subtitle1" fontWeight={600}>
@@ -706,9 +706,9 @@ export default function InvoicePanel({ isMobile = false }: { isMobile?: boolean 
   return (
     <Box
       sx={{
-        flex: '0 0 auto',
-        width: '40vw',
-        minWidth: 380,
+        flex: 1,
+        width: '100%',
+        minWidth: 0,
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
@@ -721,39 +721,34 @@ export default function InvoicePanel({ isMobile = false }: { isMobile?: boolean 
       <Box
         sx={{
           px: 2,
-          py: 1.5,
+          py: '8px',
           borderBottom: '1px solid',
           borderColor: 'grey.200',
           bgcolor: 'background.paper',
           flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="h6" fontWeight={700}>
-              Invoices
-            </Typography>
-            <Typography variant="body2" color="text.secondary" fontWeight={500}>
-              ({currentIndex + 1}/{invoices.length})
-            </Typography>
-          </Box>
-          {/* P6: Edit Invoices action */}
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={() => setEditInvoicesOpen(true)}
-            sx={{
-              textTransform: 'none',
-              fontSize: '0.8rem',
-              fontWeight: 500,
-            }}
-          >
-            Edit Invoices
-          </Button>
-        </Box>
+        <Typography variant="h6" fontWeight={700}>
+          Invoices
+        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => setEditInvoicesOpen(true)}
+          sx={{
+            textTransform: 'none',
+            fontSize: '0.8rem',
+            fontWeight: 500,
+          }}
+        >
+          Edit Invoices
+        </Button>
       </Box>
 
-      {/* Invoice tab selector — MUI Tabs, scrollable */}
+      {/* Invoice tab selector — MUI Tabs, scrollable + fixed add button */}
       <Box
         sx={{
           borderBottom: '1px solid',
@@ -908,6 +903,7 @@ export default function InvoicePanel({ isMobile = false }: { isMobile?: boolean 
             );
           })}
         </Tabs>
+
       </Box>
 
       {/* Current invoice card — draggable */}

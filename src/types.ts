@@ -73,7 +73,7 @@ export interface DraftPaymentRequest {
 // A15-1: Changed from per-line-item to per-invoice COs
 export interface PendingChangeOrder {
   id: string;
-  coNumber: string; // e.g., "CO-1001"
+  coNumber: string; // e.g., "BA-1001"
   invoiceId: string; // A15-1: NEW - The invoice that caused this overage
   lineItemId: string; // Which line item went over budget
   amount: number; // This invoice's portion of the overage
